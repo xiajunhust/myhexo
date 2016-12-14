@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <title>江南烟雨的个人博客</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description">
+<meta property="og:type" content="website">
+<meta property="og:title" content="江南烟雨的个人博客">
+<meta property="og:url" content="http://xiajunhust.github.io/index.html">
+<meta property="og:site_name" content="江南烟雨的个人博客">
+<meta property="og:description">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="江南烟雨的个人博客">
+<meta name="twitter:description">
+  
+    <link rel="alternate" href="/atom.xml" title="江南烟雨的个人博客" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  <link rel="stylesheet" href="/css/style.css">
+  
+
+</head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">江南烟雨的个人博客</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">从事互联网+电商+金融后台开发，对Java分布式开发有浓厚兴趣。欢迎来信交流xiajun.0706@163.com</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="搜索"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://xiajunhust.github.io"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main">
+  
+    <article id="post-代码设计-命名太长了！" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2016/06/18/代码设计-命名太长了！/" class="article-date">
+  <time datetime="2016-06-18T08:01:29.000Z" itemprop="datePublished">2016-06-18</time>
+</a>
+    
+  </div>
+
+  <!-- 文章访问量统计  -->
+  <span id="busuanzi_container_page_pv" style='display:none'>
+    <span id="busuanzi_value_page_pv"></span> Hits
+  </span>
+
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2016/06/18/代码设计-命名太长了！/">代码中的命名问题-命名太长了！</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="1-内容概要"><a href="#1-内容概要" class="headerlink" title="1 内容概要"></a>1 内容概要</h1><p>本文是一篇译文，翻译自：<a href="http://journal.stuffwithstuff.com/2016/06/16/long-names-are-long/?from=timeline&amp;isappinstalled=0" target="_blank" rel="external">Long Names Are Long</a>。主要介绍了编程过程中常见的命名过长的问题。</p>
+<h1 id="2-正文内容"><a href="#2-正文内容" class="headerlink" title="2 正文内容"></a>2 正文内容</h1><h2 id="2-1-选择一个好名字"><a href="#2-1-选择一个好名字" class="headerlink" title="2.1 选择一个好名字"></a>2.1 选择一个好名字</h2><p>一个好名字需要具备以下两个特点：  </p>
+<ul>
+<li>含义清晰。一眼可以看出名字指代的含义。</li>
+<li>含义精确。能够从名字看出它不包含哪些含义。  </li>
+</ul>
+<p>一个名字具备了以上2个特点之后，任何其他字符都是无用的。以下是我在编码过程中命名多得出的一些指导性准则。</p>
+<h3 id="2-1-1-忽略掉表示变量或者参数类型的字符"><a href="#2-1-1-忽略掉表示变量或者参数类型的字符" class="headerlink" title="2.1.1 忽略掉表示变量或者参数类型的字符"></a>2.1.1 忽略掉表示变量或者参数类型的字符</h3><p>对于静态变量，使用者通常都知道变量的类型。方法体通常不会很长，这样，即便是需要通过查看变量定义进行推断的局部变量，也可以很容易得知变量类型。<br>考虑到这点，将类型作为变量名字的一部分是冗余的。我们抛弃掉<a href="https://en.wikipedia.org/wiki/Hungarian_notation" target="_blank" rel="external">Hungarian notation</a>。  </p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">// Bad:</span><br><span class="line">String nameString;</span><br><span class="line">DockableModelessWindow dockableModelessWindow;</span><br><span class="line"></span><br><span class="line">// Better:</span><br><span class="line">String name;</span><br><span class="line">DockableModelessWindow window;</span><br></pre></td></tr></table></figure>
+<p>特别的，对于集合，使用复数名词更好，而不要用单独的一个表示集合的名词。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">// Bad:</span><br><span class="line">List&lt;DateTime&gt; holidayDateList;</span><br><span class="line">Map&lt;Employee, Role&gt; employeeRoleHashMap;</span><br><span class="line"></span><br><span class="line">// Better:</span><br><span class="line">List&lt;DateTime&gt; holidays;</span><br><span class="line">Map&lt;Employee, Role&gt; employeeRoles;</span><br></pre></td></tr></table></figure>
+<p>这对于方法命名同样奏效。方法名称没必要体现参数类型-通过参数列表可以得知。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">// Bad:</span><br><span class="line">mergeTableCells(List&lt;TableCell&gt; cells)</span><br><span class="line">sortEventsUsingComparator(List&lt;Event&gt; events,</span><br><span class="line">    Comparator&lt;Event&gt; comparator)</span><br><span class="line"></span><br><span class="line">// Better:</span><br><span class="line">merge(List&lt;TableCell&gt; cells)</span><br><span class="line">sort(List&lt;Event&gt; events, Comparator&lt;Event&gt; comparator)</span><br></pre></td></tr></table></figure>
+<p>这将使得调用方法的代码可读性更好：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">mergeTableCells(tableCells);</span><br><span class="line">sortEventsUsingComparator(events, comparator);</span><br></pre></td></tr></table></figure>
+<h3 id="2-1-2-忽略掉会给命名带来歧义的字符"><a href="#2-1-2-忽略掉会给命名带来歧义的字符" class="headerlink" title="2.1.2 忽略掉会给命名带来歧义的字符"></a>2.1.2 忽略掉会给命名带来歧义的字符</h3><p>有些人喜欢把所知道的关于变量或者方法的所有事情都添加到命名中去。记住，命名是一个标识符：它指向它被定义的地方。它不是读者可能想知道的关于这个变量的所有事情的一个完整目录。这部分事情由定义来完成。命名只是让读者能够跳转到定义处。<br>当我看到这样一个命名：recentlyUpdatedAnnualSalesBid，我脑海里会有这样的疑问：  </p>
+<ul>
+<li>有不是最近更新的年销售额投标吗？</li>
+<li>有没更新过的最近的年销售额投标吗？</li>
+<li>等等</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">// Bad:</span><br><span class="line">finalBattleMostDangerousBossMonster;</span><br><span class="line">weaklingFirstEncounterMonster;</span><br><span class="line"></span><br><span class="line">// Better:</span><br><span class="line">boss;</span><br><span class="line">firstMonster;</span><br></pre></td></tr></table></figure>
+<h3 id="2-1-3-忽略掉能够从上下文得知的信息的字符"><a href="#2-1-3-忽略掉能够从上下文得知的信息的字符" class="headerlink" title="2.1.3 忽略掉能够从上下文得知的信息的字符"></a>2.1.3 忽略掉能够从上下文得知的信息的字符</h3><p>在这篇文章中，我能够使用“我”是因为读者能够看到这篇文章是由Bob Nystrom发布的。我不用再文章各处说明作者是Bob Nystrom。代码也是一样。方法或者变量都有各自的上下文，不需要再命名中重复上下文中的信息。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">// Bad:</span><br><span class="line">class AnnualHolidaySale &#123;</span><br><span class="line">  int _annualSaleRebate;</span><br><span class="line">  void promoteHolidaySale() &#123; ... &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">// Better:</span><br><span class="line">class AnnualHolidaySale &#123;</span><br><span class="line">  int _rebate;</span><br><span class="line">  void promote() &#123; ... &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="2-1-4-忽略掉无任何含义的字符"><a href="#2-1-4-忽略掉无任何含义的字符" class="headerlink" title="2.1.4 忽略掉无任何含义的字符"></a>2.1.4 忽略掉无任何含义的字符</h3><p>在很多场景下，一些字符不携带任何有意义的信息，常见的如下：<br>data, state, amount, value, manager, engine, object, entity, instance。<br>一个好的命名能够在读者的脑海中绘制一幅画像。”manager”并不会让读者得知这个变量或者方法做了什么事情。<br>我们可以尝试着问自己一个问题：若移除掉这个词，标识符的含义是否和之前一样？如果是这样，这个词就是无意义的，可以移除。</p>
+<h2 id="2-2-准则的实际应用"><a href="#2-2-准则的实际应用" class="headerlink" title="2.2 准则的实际应用"></a>2.2 准则的实际应用</h2><p>为了说明上述准则在实际中是如何使用的，下面看一个例子：  </p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">class DeliciousBelgianWaffleObject &#123;</span><br><span class="line">  void garnishDeliciousBelgianWaffleWithStrawberryList(</span><br><span class="line">      List&lt;Strawberry&gt; strawberryList) &#123; ... &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>既然参数类型我们已经能够从参数列表得知，因此将其移除：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">class DeliciousBelgianWaffleObject &#123;</span><br><span class="line">    void garnishDeliciousBelgianWaffle(</span><br><span class="line">        List&lt;Strawberry&gt; strawberries) &#123; ... &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>除非我们有其他口味的华夫饼，或者是其他国家的华夫饼，否则可以继续移除掉一部分字符：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">class WaffleObject &#123;</span><br><span class="line">  void garnishWaffle(List&lt;Strawberry&gt; strawberries) &#123; ... &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>既然方法是在类WaffleObject中，因此我们知道它要装饰的对象，因此修改如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">class WaffleObject &#123;</span><br><span class="line">  void garnish(List&lt;Strawberry&gt; strawberries) &#123; ... &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>程序中，任何事务都是以对象的形式存在，因此类名可以移除掉Object：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">class Waffle &#123;</span><br><span class="line">  void garnish(List&lt;Strawberry&gt; strawberries) &#123; ... &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>现在看看，是不是好多了。</p>
+<h3 id="版权声明"><a href="#版权声明" class="headerlink" title="版权声明"></a>版权声明</h3><p>本文首发于<a href="http://xiajunhust.github.io/">江南烟雨的个人博客</a>博客（ <a href="http://xiajunhust.github.io/">http://xiajunhust.github.io/</a> ），版权所有，侵权必究。<br>本文永久链接：<a href="http://xiajunhust.github.io/2016/06/18/代码设计-命名太长了！/">http://xiajunhust.github.io/2016/06/18/代码设计-命名太长了！/</a></p>
+
+      
+
+		
+			<!-- css -->
+			<style type="text/css">
+			    .center {
+			        text-align: center;
+			    }
+			    .hidden {
+			        display: none;
+			    }
+				.donate_bar a.btn_donate{
+					display: inline-block;
+					width: 82px;
+					height: 82px;
+					background: url("http://7xsl28.com1.z0.glb.clouddn.com/btn_reward.gif") no-repeat;
+					_background: url("http://7xsl28.com1.z0.glb.clouddn.com/btn_reward.gif") no-repeat;
+
+					<!-- http://img.t.sinajs.cn/t5/style/images/apps_PRF/e_media/btn_reward.gif
+					     因为本 hexo 生成的博客所用的 theme 的 a:hover 带动画效果，
+						 为了在让打赏按钮显示效果正常 而 添加了以下几行 css，
+						 嵌入其它博客时不一定要它们。 -->
+					-webkit-transition: background 0s;
+					-moz-transition: background 0s;
+					-o-transition: background 0s;
+					-ms-transition: background 0s;
+					transition: background 0s;
+					<!-- /让打赏按钮的效果显示正常 而 添加的几行 css 到此结束 -->
+				}
+
+				.donate_bar a.btn_donate:hover{ background-position: 0px -82px;}
+				.donate_bar .donate_txt {
+					display: block;
+					color: #9d9d9d;
+					font: 14px/2 "Microsoft Yahei";
+				}
+				.bold{ font-weight: bold; }
+			</style>
+			<!-- /css -->
+
+		    <!-- Donate Module -->
+		    <div id="donate_module">
+
+			<!-- btn_donate & tips -->
+			<div id="donate_board" class="donate_bar center">
+			    <br>
+			    ------------------------------------------------------------------------------------------------------------------------------
+			    <br>
+				<a id="btn_donate" class="btn_donate" target="_self" href="javascript:;" title="Donate 打赏"></a>
+				<span class="donate_txt">
+					打赏我的人，运气都不会太差~
+				</span>
+					
+				
+			</div>
+			<!-- /btn_donate & tips -->
+
+			<!-- donate guide -->
+		    
+			<div id="donate_guide" class="donate_bar center hidden">
+		        <br>
+			    ------------------------------------------------------------------------------------------------------------------------------
+			    <br>
+			    
+			    <div width="100%" align="center"><div name="dashmain" id="dash-main-id-87895f" class="dash-main-3 87895f-0.99"></div></div>
+				<script type="text/javascript" charset="utf-8" src="http://www.dashangcloud.com/static/ds.js"></script>
+				
+
+				<a href="http://o8sltkx20.bkt.clouddn.com/0007.jpg" title="用微信扫一扫哦~" class="fancybox" rel="article0">
+					<img src="http://o8sltkx20.bkt.clouddn.com/0007.jpg" title="微信打赏 Donate" height="190px" width="auto"/>
+				</a>
+		        
+		        &nbsp;&nbsp;
+
+				<a href="http://o8sltkx20.bkt.clouddn.com/0006.jpg" title="用支付宝扫一扫即可~" class="fancybox" rel="article0">
+					<img src="http://o8sltkx20.bkt.clouddn.com/0006.jpg" title="支付宝打赏 Donate" height="190px" width="auto"/>
+				</a>
+
+				<span class="donate_txt">
+					打赏我的人，运气都不会太差~
+				</span>
+
+			</div>
+			<!-- /donate guide -->
+
+			<!-- donate script -->
+			<script type="text/javascript">
+				document.getElementById('btn_donate').onclick = function() {
+					$('#donate_board').addClass('hidden');
+			    $('#donate_guide').removeClass('hidden');
+				}
+
+				function donate_on_web(){
+					$('#donate').submit();
+		        }
+
+				var original_window_onload = window.onload;
+		        window.onload = function () {
+		            if (original_window_onload) {
+		                original_window_onload();
+		            }
+		            document.getElementById('donate_board_wdg').className = 'hidden';
+				}
+			</script>
+			<!-- /donate script -->
+		</div>
+		<!-- /Donate Module -->
+		   
+
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://xiajunhust.github.io/2016/06/18/代码设计-命名太长了！/" data-id="cipl4fh9800046nxkgx5fnwbm" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/代码设计/">代码设计</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+  
+
+  
+    <article id="post-《ActiveMQ-in-action》学习之第二章-理解消息中间件以及JMS" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2016/06/17/《ActiveMQ-in-action》学习之第二章-理解消息中间件以及JMS/" class="article-date">
+  <time datetime="2016-06-17T12:15:53.000Z" itemprop="datePublished">2016-06-17</time>
+</a>
+    
+  </div>
+
+  <!-- 文章访问量统计  -->
+  <span id="busuanzi_container_page_pv" style='display:none'>
+    <span id="busuanzi_value_page_pv"></span> Hits
+  </span>
+
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2016/06/17/《ActiveMQ-in-action》学习之第二章-理解消息中间件以及JMS/">《ActiveMQ in action》学习之第二章-理解消息中间件以及JMS</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="内容概要"><a href="#内容概要" class="headerlink" title="内容概要"></a>内容概要</h1><p>《ActiveMQ实战》第二章学习笔记，消息中间件以及JMS基础知识学习。</p>
+<h1 id="基本概念"><a href="#基本概念" class="headerlink" title="基本概念"></a>基本概念</h1><h2 id="什么是MOM？"><a href="#什么是MOM？" class="headerlink" title="什么是MOM？"></a>什么是MOM？</h2><p>MOM是的消息发送者和接收者之间松耦合。发送者不必知道接收者的任何信息，接收者也不必知道发送者的任何事情，即异步消息。<br>MOM提供了紧耦合系统之间不具有的优点：消息持久化，在不可靠连接情况下的鲁棒通信、复杂路由、消息转换等等。</p>
+<h2 id="什么是JMS？"><a href="#什么是JMS？" class="headerlink" title="什么是JMS？"></a>什么是JMS？</h2><p>JMS本身不是MOM，他是一种API，抽象了消息客户端和MOM之间的连接，就像JDBC抽象了和关系数据库之间的连接。下图展示了JMS提供了API供消息客户端和具体的MOM JMS提供商之间的交互：<br><img src="http://o8sltkx20.bkt.clouddn.com/5.png" alt=""></p>
+<h1 id="一些特性"><a href="#一些特性" class="headerlink" title="一些特性"></a>一些特性</h1><h2 id="消息选择"><a href="#消息选择" class="headerlink" title="消息选择"></a>消息选择</h2><p>如果消息接收端只想接收某些类型的消息,则可以使用消息选择功能。消息选择器由SQL92子集定义的条件表达式组成。 消息选择器只能依据消息头和属性来过滤,不能依据消息体来过滤。</p>
+<h2 id="JMS的两种domain"><a href="#JMS的两种domain" class="headerlink" title="JMS的两种domain"></a>JMS的两种domain</h2><ul>
+<li>点对点  </li>
+</ul>
+<p>消息的目的地是一个队列。消息能够以同步或异步的方式被发送和接收。队列接收到的每个消息会被立即发送出去,并且只会被发送给一个消费者。消 费者能够以同步方式(MessageConsumer.receive方法)或者异步方式(MessageConsumer.setMessageListener)从队列接收消息。队列将会一直保存消 息,直至消息被消费或者过期。<br>同一个队列上可以注册多个消费者,但是一个消息只能被一个消费者接收。JMS provider保证一条消息只会被投递一次,并且只会被投递给一个消费 者。JMS provider会轮询已注册的所有消费者,来投递消息。<br><img src="http://o8sltkx20.bkt.clouddn.com/6.png" alt=""></p>
+<ul>
+<li>发布/订阅</li>
+</ul>
+<p>消息发送的目的地是topic。所有发送到该topic上的消息会被投送给该topic的所有订阅者。<br><img src="http://o8sltkx20.bkt.clouddn.com/7.png" alt=""></p>
+<p>与点对点类似,消息订阅者可以以同步或者异步的方式接收消息。默认,topic不会保存消息,除非显式进行持久化订阅。如果采用持久化订阅,JMS provider负责在订阅者离线的时候保存消息。一旦订阅者重新与provider建立连接,便会收到所有的未过期的消息。</p>
+<p>区别message durability &amp; message persistence<br>这两个概念很容易混淆,虽然类似,但是有语义上的区别以及各自的目的。Message durability只存在于发布/订阅模式。<br>而message persistence和哪种模式没有关系,它是一种服务属性,用来只是jms应用在jms provider失败期间保存丢失的消息。调用消息生产者的 setDeliveryMode方法可以设置值(JMSDeliveryMode.PERSISTENCE,NOT_PERSISTENCE)。</p>
+<h3 id="版权声明"><a href="#版权声明" class="headerlink" title="版权声明"></a>版权声明</h3><p>本文首发于<a href="http://xiajunhust.github.io/">江南烟雨的个人博客</a>博客（ <a href="http://xiajunhust.github.io/">http://xiajunhust.github.io/</a> ），版权所有，侵权必究。<br>本文永久链接：<a href="http://xiajunhust.github.io/2016/06/17/《ActiveMQ-in-action》学习之第二章-理解消息中间件以及JMS/">http://xiajunhust.github.io/2016/06/17/《ActiveMQ-in-action》学习之第二章-理解消息中间件以及JMS/</a></p>
+
+      
+
+		
+			<!-- css -->
+			<style type="text/css">
+			    .center {
+			        text-align: center;
+			    }
+			    .hidden {
+			        display: none;
+			    }
+				.donate_bar a.btn_donate{
+					display: inline-block;
+					width: 82px;
+					height: 82px;
+					background: url("http://7xsl28.com1.z0.glb.clouddn.com/btn_reward.gif") no-repeat;
+					_background: url("http://7xsl28.com1.z0.glb.clouddn.com/btn_reward.gif") no-repeat;
+
+					<!-- http://img.t.sinajs.cn/t5/style/images/apps_PRF/e_media/btn_reward.gif
+					     因为本 hexo 生成的博客所用的 theme 的 a:hover 带动画效果，
+						 为了在让打赏按钮显示效果正常 而 添加了以下几行 css，
+						 嵌入其它博客时不一定要它们。 -->
+					-webkit-transition: background 0s;
+					-moz-transition: background 0s;
+					-o-transition: background 0s;
+					-ms-transition: background 0s;
+					transition: background 0s;
+					<!-- /让打赏按钮的效果显示正常 而 添加的几行 css 到此结束 -->
+				}
+
+				.donate_bar a.btn_donate:hover{ background-position: 0px -82px;}
+				.donate_bar .donate_txt {
+					display: block;
+					color: #9d9d9d;
+					font: 14px/2 "Microsoft Yahei";
+				}
+				.bold{ font-weight: bold; }
+			</style>
+			<!-- /css -->
+
+		    <!-- Donate Module -->
+		    <div id="donate_module">
+
+			<!-- btn_donate & tips -->
+			<div id="donate_board" class="donate_bar center">
+			    <br>
+			    ------------------------------------------------------------------------------------------------------------------------------
+			    <br>
+				<a id="btn_donate" class="btn_donate" target="_self" href="javascript:;" title="Donate 打赏"></a>
+				<span class="donate_txt">
+					打赏我的人，运气都不会太差~
+				</span>
+					
+				
+			</div>
+			<!-- /btn_donate & tips -->
+
+			<!-- donate guide -->
+		    
+			<div id="donate_guide" class="donate_bar center hidden">
+		        <br>
+			    ------------------------------------------------------------------------------------------------------------------------------
+			    <br>
+			    
+			    <div width="100%" align="center"><div name="dashmain" id="dash-main-id-87895f" class="dash-main-3 87895f-0.99"></div></div>
+				<script type="text/javascript" charset="utf-8" src="http://www.dashangcloud.com/static/ds.js"></script>
+				
+
+				<a href="http://o8sltkx20.bkt.clouddn.com/0007.jpg" title="用微信扫一扫哦~" class="fancybox" rel="article0">
+					<img src="http://o8sltkx20.bkt.clouddn.com/0007.jpg" title="微信打赏 Donate" height="190px" width="auto"/>
+				</a>
+		        
+		        &nbsp;&nbsp;
+
+				<a href="http://o8sltkx20.bkt.clouddn.com/0006.jpg" title="用支付宝扫一扫即可~" class="fancybox" rel="article0">
+					<img src="http://o8sltkx20.bkt.clouddn.com/0006.jpg" title="支付宝打赏 Donate" height="190px" width="auto"/>
+				</a>
+
+				<span class="donate_txt">
+					打赏我的人，运气都不会太差~
+				</span>
+
+			</div>
+			<!-- /donate guide -->
+
+			<!-- donate script -->
+			<script type="text/javascript">
+				document.getElementById('btn_donate').onclick = function() {
+					$('#donate_board').addClass('hidden');
+			    $('#donate_guide').removeClass('hidden');
+				}
+
+				function donate_on_web(){
+					$('#donate').submit();
+		        }
+
+				var original_window_onload = window.onload;
+		        window.onload = function () {
+		            if (original_window_onload) {
+		                original_window_onload();
+		            }
+		            document.getElementById('donate_board_wdg').className = 'hidden';
+				}
+			</script>
+			<!-- /donate script -->
+		</div>
+		<!-- /Donate Module -->
+		   
+
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://xiajunhust.github.io/2016/06/17/《ActiveMQ-in-action》学习之第二章-理解消息中间件以及JMS/" data-id="cipl4fh9900056nxkrvja7tut" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/消息中间件/">消息中间件</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+  
+
+  
+    <article id="post-Hexo-GitHub搭建个人博客-增加评论功能" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2016/06/16/Hexo-GitHub搭建个人博客-增加评论功能/" class="article-date">
+  <time datetime="2016-06-16T07:24:13.000Z" itemprop="datePublished">2016-06-16</time>
+</a>
+    
+  </div>
+
+  <!-- 文章访问量统计  -->
+  <span id="busuanzi_container_page_pv" style='display:none'>
+    <span id="busuanzi_value_page_pv"></span> Hits
+  </span>
+
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2016/06/16/Hexo-GitHub搭建个人博客-增加评论功能/">Hexo GitHub搭建个人博客-增加评论以及访问量统计功能</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="内容概要"><a href="#内容概要" class="headerlink" title="内容概要"></a>内容概要</h1><p>本文主要介绍如何为Hexo搭建的博客增加评论功能，采用了<a href="http://duoshuo.com/" target="_blank" rel="external">多说</a>插件，以及访问量统计功能。</p>
+<h1 id="增加评论功能的步骤"><a href="#增加评论功能的步骤" class="headerlink" title="增加评论功能的步骤"></a>增加评论功能的步骤</h1><h2 id="注册多说"><a href="#注册多说" class="headerlink" title="注册多说"></a>注册多说</h2><p>进入<a href="http://duoshuo.com/" target="_blank" rel="external">多说官网</a>，点击我要安装，注册账号。填入多说域名（后续会用到）、要使用多说插件的站点地址等信息。</p>
+<h2 id="修改hexo配置文件"><a href="#修改hexo配置文件" class="headerlink" title="修改hexo配置文件"></a>修改hexo配置文件</h2><ul>
+<li>在根目录下_config.yml中增加如下内容：  </li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">duoshuo_shortname: 你站点的short_name</span><br></pre></td></tr></table></figure>
+<p>这里的short_name也就是前面注册多说填入的多说域名。  </p>
+<ul>
+<li>然后将themes\landscape\layout_partial\article.ejs（如果使用的其他主题，文件路径类似）中的如下内容：  </li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">&lt;% if (!index &amp;&amp; post.comments &amp;&amp; config.disqus_shortname)&#123; %&gt;</span><br><span class="line"> &lt;section id=&quot;comments&quot;&gt;</span><br><span class="line">   &lt;div id=&quot;disqus_thread&quot;&gt;</span><br><span class="line">     &lt;noscript&gt;Please enable JavaScript to view the &lt;a href=&quot;//disqus.com/?ref_noscript&quot;&gt;comments powered by Disqus.&lt;/a&gt;&lt;/noscript&gt;</span><br><span class="line">   &lt;/div&gt;</span><br><span class="line"> &lt;/section&gt;</span><br><span class="line"> &lt;% &#125; %&gt;</span><br></pre></td></tr></table></figure>
+<p>替换为：  </p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"> &lt;% if (!index &amp;&amp; post.comments &amp;&amp; config.duoshuo_shortname)&#123; %&gt;</span><br><span class="line">  &lt;section id=&quot;comments&quot;&gt;</span><br><span class="line">   &lt;!-- 多说评论框 start --&gt;</span><br><span class="line">&lt;div id=&quot;ds-thread&quot; class=&quot;ds-thread&quot; data-thread-key=&quot;&lt;%= post.path %&gt;&quot; data-title=&quot;&lt;%= post.title %&gt;&quot; data-url=&quot;&lt;%= post.permalink %&gt;&quot;&gt;&lt;/div&gt;</span><br><span class="line">&lt;!-- 多说评论框 end --&gt;</span><br><span class="line">&lt;!-- 多说公共JS代码 start (一个网页只需插入一次) --&gt;</span><br><span class="line">&lt;script type=&quot;text/javascript&quot;&gt;</span><br><span class="line">var duoshuoQuery = &#123;short_name:&quot;datoublog&quot;&#125;;</span><br><span class="line">	(function() &#123;</span><br><span class="line">		var ds = document.createElement(&apos;script&apos;);</span><br><span class="line">		ds.type = &apos;text/javascript&apos;;ds.async = true;</span><br><span class="line">		ds.src = (document.location.protocol == &apos;https:&apos; ? &apos;https:&apos; : &apos;http:&apos;) + &apos;//static.duoshuo.com/embed.js&apos;;</span><br><span class="line">		ds.charset = &apos;UTF-8&apos;;</span><br><span class="line">		(document.getElementsByTagName(&apos;head&apos;)[0] </span><br><span class="line">		 || document.getElementsByTagName(&apos;body&apos;)[0]).appendChild(ds);</span><br><span class="line">	&#125;)();</span><br><span class="line">	&lt;/script&gt;</span><br><span class="line">&lt;!-- 多说公共JS代码 end --&gt;</span><br><span class="line">  &lt;/section&gt;</span><br><span class="line">  &lt;% &#125; %&gt;</span><br></pre></td></tr></table></figure>
+<p>然后将修改部署到github。这个时候刷新博文，就可以发现文章下面多出来的评论窗口。<br>发现评论内容会自动刷新，但是评论数量不会更新，不知道是否是多说的一个bug。<br><img src="http://o8sltkx20.bkt.clouddn.com/2.png" alt=""></p>
+<h1 id="增加访问量统计功能"><a href="#增加访问量统计功能" class="headerlink" title="增加访问量统计功能"></a>增加访问量统计功能</h1><ul>
+<li>修改themes/landscape/layout/_partial/after_footer.ejs文件，引入js文件</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">&lt;script async src=&quot;https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js&quot;&gt;</span><br><span class="line">&lt;/script&gt;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>然后在我们要展示访问量统计信息的地方添加如下代码</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">本站总访问量&lt;span id=&quot;busuanzi_value_site_pv&quot;&gt;&lt;/span&gt;次</span><br><span class="line">本站访客数&lt;span id=&quot;busuanzi_value_site_uv&quot;&gt;&lt;/span&gt;人次</span><br><span class="line">本文总阅读量&lt;span id=&quot;busuanzi_value_page_pv&quot;&gt;&lt;/span&gt;次</span><br></pre></td></tr></table></figure>
+<p>部署到github，这个时候就发现对应的地方展示出来了访问量统计信息：<br><img src="http://o8sltkx20.bkt.clouddn.com/4.png" alt=""></p>
+<h1 id="参考链接"><a href="#参考链接" class="headerlink" title="参考链接"></a>参考链接</h1><p><a href="http://www.lichanglin.cn/%E5%9C%A8hexo%E4%B8%AD%E5%8A%A0%E5%85%A5%E5%A4%9A%E8%AF%B4%E8%AF%84%E8%AE%BA/" target="_blank" rel="external">在hexo中加入多说评论</a></p>
+<h3 id="版权声明"><a href="#版权声明" class="headerlink" title="版权声明"></a>版权声明</h3><p>本文首发于<a href="http://xiajunhust.github.io/">江南烟雨的个人博客</a>博客（ <a href="http://xiajunhust.github.io/">http://xiajunhust.github.io/</a> ），版权所有，侵权必究。<br>本文永久链接：<a href="http://xiajunhust.github.io/2016/06/16/Hexo-GitHub搭建个人博客-增加评论功能/">http://xiajunhust.github.io/2016/06/16/Hexo-GitHub搭建个人博客-增加评论功能/</a></p>
+
+      
+
+		
+			<!-- css -->
+			<style type="text/css">
+			    .center {
+			        text-align: center;
+			    }
+			    .hidden {
+			        display: none;
+			    }
+				.donate_bar a.btn_donate{
+					display: inline-block;
+					width: 82px;
+					height: 82px;
+					background: url("http://7xsl28.com1.z0.glb.clouddn.com/btn_reward.gif") no-repeat;
+					_background: url("http://7xsl28.com1.z0.glb.clouddn.com/btn_reward.gif") no-repeat;
+
+					<!-- http://img.t.sinajs.cn/t5/style/images/apps_PRF/e_media/btn_reward.gif
+					     因为本 hexo 生成的博客所用的 theme 的 a:hover 带动画效果，
+						 为了在让打赏按钮显示效果正常 而 添加了以下几行 css，
+						 嵌入其它博客时不一定要它们。 -->
+					-webkit-transition: background 0s;
+					-moz-transition: background 0s;
+					-o-transition: background 0s;
+					-ms-transition: background 0s;
+					transition: background 0s;
+					<!-- /让打赏按钮的效果显示正常 而 添加的几行 css 到此结束 -->
+				}
+
+				.donate_bar a.btn_donate:hover{ background-position: 0px -82px;}
+				.donate_bar .donate_txt {
+					display: block;
+					color: #9d9d9d;
+					font: 14px/2 "Microsoft Yahei";
+				}
+				.bold{ font-weight: bold; }
+			</style>
+			<!-- /css -->
+
+		    <!-- Donate Module -->
+		    <div id="donate_module">
+
+			<!-- btn_donate & tips -->
+			<div id="donate_board" class="donate_bar center">
+			    <br>
+			    ------------------------------------------------------------------------------------------------------------------------------
+			    <br>
+				<a id="btn_donate" class="btn_donate" target="_self" href="javascript:;" title="Donate 打赏"></a>
+				<span class="donate_txt">
+					打赏我的人，运气都不会太差~
+				</span>
+					
+				
+			</div>
+			<!-- /btn_donate & tips -->
+
+			<!-- donate guide -->
+		    
+			<div id="donate_guide" class="donate_bar center hidden">
+		        <br>
+			    ------------------------------------------------------------------------------------------------------------------------------
+			    <br>
+			    
+			    <div width="100%" align="center"><div name="dashmain" id="dash-main-id-87895f" class="dash-main-3 87895f-0.99"></div></div>
+				<script type="text/javascript" charset="utf-8" src="http://www.dashangcloud.com/static/ds.js"></script>
+				
+
+				<a href="http://o8sltkx20.bkt.clouddn.com/0007.jpg" title="用微信扫一扫哦~" class="fancybox" rel="article0">
+					<img src="http://o8sltkx20.bkt.clouddn.com/0007.jpg" title="微信打赏 Donate" height="190px" width="auto"/>
+				</a>
+		        
+		        &nbsp;&nbsp;
+
+				<a href="http://o8sltkx20.bkt.clouddn.com/0006.jpg" title="用支付宝扫一扫即可~" class="fancybox" rel="article0">
+					<img src="http://o8sltkx20.bkt.clouddn.com/0006.jpg" title="支付宝打赏 Donate" height="190px" width="auto"/>
+				</a>
+
+				<span class="donate_txt">
+					打赏我的人，运气都不会太差~
+				</span>
+
+			</div>
+			<!-- /donate guide -->
+
+			<!-- donate script -->
+			<script type="text/javascript">
+				document.getElementById('btn_donate').onclick = function() {
+					$('#donate_board').addClass('hidden');
+			    $('#donate_guide').removeClass('hidden');
+				}
+
+				function donate_on_web(){
+					$('#donate').submit();
+		        }
+
+				var original_window_onload = window.onload;
+		        window.onload = function () {
+		            if (original_window_onload) {
+		                original_window_onload();
+		            }
+		            document.getElementById('donate_board_wdg').className = 'hidden';
+				}
+			</script>
+			<!-- /donate script -->
+		</div>
+		<!-- /Donate Module -->
+		   
+
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://xiajunhust.github.io/2016/06/16/Hexo-GitHub搭建个人博客-增加评论功能/" data-id="cipl4fh9200026nxkgtj53kh0" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/开发工具/">开发工具</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+  
+
+  
+    <article id="post-Hexo-GitHub环境搭建-添加README" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2016/06/15/Hexo-GitHub环境搭建-添加README/" class="article-date">
+  <time datetime="2016-06-15T02:30:59.000Z" itemprop="datePublished">2016-06-15</time>
+</a>
+    
+  </div>
+
+  <!-- 文章访问量统计  -->
+  <span id="busuanzi_container_page_pv" style='display:none'>
+    <span id="busuanzi_value_page_pv"></span> Hits
+  </span>
+
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2016/06/15/Hexo-GitHub环境搭建-添加README/">Hexo GitHub搭建个人博客-添加README</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h2 id="概要"><a href="#概要" class="headerlink" title="概要"></a>概要</h2><p>当我们使用Hexo+Github搭建好个人博客环境之后，默认Github上repository中是没有Readme的。本文主要介绍如何添加Readme。</p>
+<h2 id="如何添加Readme"><a href="#如何添加Readme" class="headerlink" title="如何添加Readme"></a>如何添加Readme</h2><p>如果我们直接在Github上增加Readme文件，在执行了hexo d部署命令之后，Readme文件会自动消失。  </p>
+<p><b>解决办法</b><br>将我们要添加的Readme.md文件放入本地hexo工作目录的source根目录下，然后修改_config.yml文件，在skip_render后增加我们添加的文件名README.md:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">skip_render: README.md</span><br></pre></td></tr></table></figure>
+<p>需要注意的是，冒号后一定要有空格， 否则运行hexo g命令的时候会出现莫名其妙的错误：  </p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">xiajundeMacBook-Pro:hexo xiajun$ sudo hexo d</span><br><span class="line">FATAL can not read a block mapping entry; a multiline key may not be an implicit key at line 30, column 1:</span><br><span class="line">    # Writing</span><br><span class="line">    ^</span><br><span class="line">YAMLException: can not read a block mapping entry; a multiline key may not be an implicit key at line 30, column 1:</span><br><span class="line">    # Writing</span><br><span class="line">    ^</span><br><span class="line">    at generateError (/Users/xiajun/hexo/node_modules/hexo/node_modules/js-yaml/lib/js-yaml/loader.js:162:10)</span><br><span class="line">    at throwError (/Users/xiajun/hexo/node_modules/hexo/node_modules/js-yaml/lib/js-yaml/loader.js:168:9)</span><br><span class="line">    at readBlockMapping (/Users/xiajun/hexo/node_modules/hexo/node_modules/js-yaml/lib/js-yaml/loader.js:1040:9)</span><br><span class="line">    at composeNode (/Users/xiajun/hexo/node_modules/hexo/node_modules/js-yaml/lib/js-yaml/loader.js:1326:12)</span><br><span class="line">    at readDocument (/Users/xiajun/hexo/node_modules/hexo/node_modules/js-yaml/lib/js-yaml/loader.js:1488:3)</span><br><span class="line">    at loadDocuments (/Users/xiajun/hexo/node_modules/hexo/node_modules/js-yaml/lib/js-yaml/loader.js:1544:5)</span><br><span class="line">    at Object.load (/Users/xiajun/hexo/node_modules/hexo/node_modules/js-yaml/lib/js-yaml/loader.js:1561:19)</span><br><span class="line">    at Hexo.yamlHelper (/Users/xiajun/hexo/node_modules/hexo/lib/plugins/renderer/yaml.js:7:15)</span><br><span class="line">    at Hexo.tryCatcher (/Users/xiajun/hexo/node_modules/hexo/node_modules/bluebird/js/release/util.js:16:23)</span><br><span class="line">    at Hexo.&lt;anonymous&gt; (/Users/xiajun/hexo/node_modules/hexo/node_modules/bluebird/js/release/method.js:15:34)</span><br><span class="line">    at /Users/xiajun/hexo/node_modules/hexo/lib/hexo/render.js:59:21</span><br><span class="line">    at tryCatcher (/Users/xiajun/hexo/node_modules/hexo/node_modules/bluebird/js/release/util.js:16:23)</span><br><span class="line">    at Promise._settlePromiseFromHandler (/Users/xiajun/hexo/node_modules/hexo/node_modules/bluebird/js/release/promise.js:502:31)</span><br><span class="line">    at Promise._settlePromise (/Users/xiajun/hexo/node_modules/hexo/node_modules/bluebird/js/release/promise.js:559:18)</span><br><span class="line">    at Promise._settlePromise0 (/Users/xiajun/hexo/node_modules/hexo/node_modules/bluebird/js/release/promise.js:604:10)</span><br><span class="line">    at Promise._settlePromises (/Users/xiajun/hexo/node_modules/hexo/node_modules/bluebird/js/release/promise.js:683:18)</span><br><span class="line">    at Async._drainQueue (/Users/xiajun/hexo/node_modules/hexo/node_modules/bluebird/js/release/async.js:138:16)</span><br><span class="line">    at Async._drainQueues (/Users/xiajun/hexo/node_modules/hexo/node_modules/bluebird/js/release/async.js:148:10)</span><br><span class="line">    at Immediate.Async.drainQueues [as _onImmediate] (/Users/xiajun/hexo/node_modules/hexo/node_modules/bluebird/js/release/async.js:17:14)</span><br><span class="line">    at processImmediate [as _immediateCallback] (timers.js:368:17)</span><br></pre></td></tr></table></figure>
+<p>然后我们执行部署命令部署到github，就可以看到repository中有了Readme文件，并且下次再次部署的时候，依然存在。  </p>
+<p>关于skip_render的含义，官方文档解释是：<br>跳过指定文件的渲染，您可使用 glob 表达式来匹配路径。  </p>
+<h2 id="参考链接"><a href="#参考链接" class="headerlink" title="参考链接"></a>参考链接</h2><p><a href="http://stackoverflow.com/questions/31494145/how-can-i-tell-hexo-to-ignore-a-file-when-creating-posts" target="_blank" rel="external">How can I tell Hexo to ignore a file when creating posts?-StackOverflow</a><br><a href="http://www.yczmm.com/hexo-skip_render.html" target="_blank" rel="external">Hexo _posts目录, skip_render 的说明</a><br><a href="https://hexo.io/zh-cn/docs/configuration.html" target="_blank" rel="external">Hexo官方文档</a></p>
+<h3 id="版权声明"><a href="#版权声明" class="headerlink" title="版权声明"></a>版权声明</h3><p>本文首发于<a href="http://xiajunhust.github.io/">江南烟雨的个人博客</a>博客（ <a href="http://xiajunhust.github.io/">http://xiajunhust.github.io/</a> ），版权所有，侵权必究。<br>本文永久链接：<a href="http://xiajunhust.github.io/2016/06/15/Hexo-GitHub环境搭建-添加README/">http://xiajunhust.github.io/2016/06/15/Hexo-GitHub环境搭建-添加README/</a></p>
+
+      
+
+		
+			<!-- css -->
+			<style type="text/css">
+			    .center {
+			        text-align: center;
+			    }
+			    .hidden {
+			        display: none;
+			    }
+				.donate_bar a.btn_donate{
+					display: inline-block;
+					width: 82px;
+					height: 82px;
+					background: url("http://7xsl28.com1.z0.glb.clouddn.com/btn_reward.gif") no-repeat;
+					_background: url("http://7xsl28.com1.z0.glb.clouddn.com/btn_reward.gif") no-repeat;
+
+					<!-- http://img.t.sinajs.cn/t5/style/images/apps_PRF/e_media/btn_reward.gif
+					     因为本 hexo 生成的博客所用的 theme 的 a:hover 带动画效果，
+						 为了在让打赏按钮显示效果正常 而 添加了以下几行 css，
+						 嵌入其它博客时不一定要它们。 -->
+					-webkit-transition: background 0s;
+					-moz-transition: background 0s;
+					-o-transition: background 0s;
+					-ms-transition: background 0s;
+					transition: background 0s;
+					<!-- /让打赏按钮的效果显示正常 而 添加的几行 css 到此结束 -->
+				}
+
+				.donate_bar a.btn_donate:hover{ background-position: 0px -82px;}
+				.donate_bar .donate_txt {
+					display: block;
+					color: #9d9d9d;
+					font: 14px/2 "Microsoft Yahei";
+				}
+				.bold{ font-weight: bold; }
+			</style>
+			<!-- /css -->
+
+		    <!-- Donate Module -->
+		    <div id="donate_module">
+
+			<!-- btn_donate & tips -->
+			<div id="donate_board" class="donate_bar center">
+			    <br>
+			    ------------------------------------------------------------------------------------------------------------------------------
+			    <br>
+				<a id="btn_donate" class="btn_donate" target="_self" href="javascript:;" title="Donate 打赏"></a>
+				<span class="donate_txt">
+					打赏我的人，运气都不会太差~
+				</span>
+					
+				
+			</div>
+			<!-- /btn_donate & tips -->
+
+			<!-- donate guide -->
+		    
+			<div id="donate_guide" class="donate_bar center hidden">
+		        <br>
+			    ------------------------------------------------------------------------------------------------------------------------------
+			    <br>
+			    
+			    <div width="100%" align="center"><div name="dashmain" id="dash-main-id-87895f" class="dash-main-3 87895f-0.99"></div></div>
+				<script type="text/javascript" charset="utf-8" src="http://www.dashangcloud.com/static/ds.js"></script>
+				
+
+				<a href="http://o8sltkx20.bkt.clouddn.com/0007.jpg" title="用微信扫一扫哦~" class="fancybox" rel="article0">
+					<img src="http://o8sltkx20.bkt.clouddn.com/0007.jpg" title="微信打赏 Donate" height="190px" width="auto"/>
+				</a>
+		        
+		        &nbsp;&nbsp;
+
+				<a href="http://o8sltkx20.bkt.clouddn.com/0006.jpg" title="用支付宝扫一扫即可~" class="fancybox" rel="article0">
+					<img src="http://o8sltkx20.bkt.clouddn.com/0006.jpg" title="支付宝打赏 Donate" height="190px" width="auto"/>
+				</a>
+
+				<span class="donate_txt">
+					打赏我的人，运气都不会太差~
+				</span>
+
+			</div>
+			<!-- /donate guide -->
+
+			<!-- donate script -->
+			<script type="text/javascript">
+				document.getElementById('btn_donate').onclick = function() {
+					$('#donate_board').addClass('hidden');
+			    $('#donate_guide').removeClass('hidden');
+				}
+
+				function donate_on_web(){
+					$('#donate').submit();
+		        }
+
+				var original_window_onload = window.onload;
+		        window.onload = function () {
+		            if (original_window_onload) {
+		                original_window_onload();
+		            }
+		            document.getElementById('donate_board_wdg').className = 'hidden';
+				}
+			</script>
+			<!-- /donate script -->
+		</div>
+		<!-- /Donate Module -->
+		   
+
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://xiajunhust.github.io/2016/06/15/Hexo-GitHub环境搭建-添加README/" data-id="cipl4fh8u00006nxku23a9a2w" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/开发工具/">开发工具</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+  
+
+  
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/代码设计/">代码设计</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/开发工具/">开发工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息中间件/">消息中间件</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/代码设计/" style="font-size: 10px;">代码设计</a> <a href="/tags/开发工具/" style="font-size: 20px;">开发工具</a> <a href="/tags/消息中间件/" style="font-size: 10px;">消息中间件</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">归档</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">六月 2016</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2016/06/18/代码设计-命名太长了！/">代码中的命名问题-命名太长了！</a>
+          </li>
+        
+          <li>
+            <a href="/2016/06/17/《ActiveMQ-in-action》学习之第二章-理解消息中间件以及JMS/">《ActiveMQ in action》学习之第二章-理解消息中间件以及JMS</a>
+          </li>
+        
+          <li>
+            <a href="/2016/06/16/Hexo-GitHub搭建个人博客-增加评论功能/">Hexo GitHub搭建个人博客-增加评论以及访问量统计功能</a>
+          </li>
+        
+          <li>
+            <a href="/2016/06/15/Hexo-GitHub环境搭建-添加README/">Hexo GitHub搭建个人博客-添加README</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    <iframe width="100%" height="550" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=1&isTitle=1&noborder=1&isWeibo=1&isFans=1&uid=1618991481&verifier=6bf885be&dpc=1"></iframe>
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2016 江南烟雨<br>
+      <span id="busuanzi_container_site_pv" style='display:none'>
+        Total <span id="busuanzi_value_site_pv"></span> views<br>
+      </span>
+      <span id="busuanzi_container_site_uv" style='display:none'>
+        您是访问本站的第<span id="busuanzi_value_site_uv"></span>个小伙伴<br>
+      </span>      
+Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+<script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+  </div>
+</body>
+</html>

@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <title>RocketMQ源码学习之二-同步消息发送 | 江南烟雨的个人博客</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="本文讲述RocketMQ同步发送消息的原理。
+1 消息生产者demo先看一段同步发送消息的demo代码：  
+123456789101112131415161718192021222324252627282930import com.alibaba.rocketmq.client.exception.MQClientException;import com.alibaba.rocketmq.cli">
+<meta property="og:type" content="article">
+<meta property="og:title" content="RocketMQ源码学习之二-同步消息发送">
+<meta property="og:url" content="http://xiajunhust.github.io/2016/11/12/RocketMQ源码学习之二-同步消息发送/index.html">
+<meta property="og:site_name" content="江南烟雨的个人博客">
+<meta property="og:description" content="本文讲述RocketMQ同步发送消息的原理。
+1 消息生产者demo先看一段同步发送消息的demo代码：  
+123456789101112131415161718192021222324252627282930import com.alibaba.rocketmq.client.exception.MQClientException;import com.alibaba.rocketmq.cli">
+<meta property="og:image" content="http://o8sltkx20.bkt.clouddn.com/rocketmq-sourcecode-1-1.jpeg">
+<meta property="og:image" content="http://o8sltkx20.bkt.clouddn.com/rocketmq-sourcecode-2-1.png">
+<meta property="og:image" content="http://o8sltkx20.bkt.clouddn.com/rocketmq-sourcecode-1-2.jpg">
+<meta property="og:image" content="http://o8sltkx20.bkt.clouddn.com/rocketmq-sourcecode-1-3.jpg">
+<meta property="og:updated_time" content="2016-11-16T03:34:29.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="RocketMQ源码学习之二-同步消息发送">
+<meta name="twitter:description" content="本文讲述RocketMQ同步发送消息的原理。
+1 消息生产者demo先看一段同步发送消息的demo代码：  
+123456789101112131415161718192021222324252627282930import com.alibaba.rocketmq.client.exception.MQClientException;import com.alibaba.rocketmq.cli">
+<meta name="twitter:image" content="http://o8sltkx20.bkt.clouddn.com/rocketmq-sourcecode-1-1.jpeg">
+  
+    <link rel="alternate" href="/atom.xml" title="江南烟雨的个人博客" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  <link rel="stylesheet" href="/css/style.css">
+  
+
+</head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">江南烟雨的个人博客</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="搜索"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://xiajunhust.github.io"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-RocketMQ源码学习之二-同步消息发送" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2016/11/12/RocketMQ源码学习之二-同步消息发送/" class="article-date">
+  <time datetime="2016-11-12T12:52:32.000Z" itemprop="datePublished">2016-11-12</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      RocketMQ源码学习之二-同步消息发送
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>本文讲述RocketMQ同步发送消息的原理。</p>
+<h1 id="1-消息生产者demo"><a href="#1-消息生产者demo" class="headerlink" title="1 消息生产者demo"></a>1 消息生产者demo</h1><p>先看一段同步发送消息的demo代码：  </p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div></pre></td><td class="code"><pre><div class="line">import com.alibaba.rocketmq.client.exception.MQClientException;</div><div class="line">import com.alibaba.rocketmq.client.producer.DefaultMQProducer;</div><div class="line">import com.alibaba.rocketmq.client.producer.SendResult;</div><div class="line">import com.alibaba.rocketmq.common.message.Message;</div><div class="line"></div><div class="line">public class Producer1 &#123;</div><div class="line">  public static void main(String[] args) throws MQClientException, InterruptedException &#123;</div><div class="line">    DefaultMQProducer producer = new DefaultMQProducer(&quot;ProducerGroupName&quot;);</div><div class="line">    producer.setNamesrvAddr(&quot;192.168.2.101:9876&quot;);</div><div class="line">    producer.setInstanceName(&quot;Producer1&quot;);</div><div class="line">    producer.start();</div><div class="line">    for (int i = 0; i &lt; 1; i++)</div><div class="line">      try &#123;</div><div class="line">        &#123;</div><div class="line">          Message msg = new Message(&quot;TopicTest&quot;,// topic</div><div class="line">                                    &quot;TagA&quot;,// tag</div><div class="line">                                    &quot;OrderID188&quot;,// key</div><div class="line">                                    (&quot;Hello MetaQ&quot;).getBytes());// body</div><div class="line">          SendResult sendResult = producer.send(msg);</div><div class="line">          System.out.println(sendResult);</div><div class="line">        &#125;</div><div class="line"></div><div class="line">      &#125;</div><div class="line">      catch (Exception e) &#123;</div><div class="line">        e.printStackTrace();</div><div class="line">      &#125;</div><div class="line"></div><div class="line">    producer.shutdown();</div><div class="line">  &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<a id="more"></a>
+<p>运行结果：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">log4j:WARN No appenders could be found for logger (com.alibaba.rocketmq.shade.io.netty.util.internal.logging.InternalLoggerFactory).</div><div class="line">log4j:WARN Please initialize the log4j system properly.</div><div class="line">log4j:WARN See http://logging.apache.org/log4j/1.2/faq.html#noconfig for more info.</div><div class="line">SendResult [sendStatus=SEND_OK, msgId=C0A8026507741218025C3A983E8F0000,offsetMsgId=C0A8026500002A9F0000000000001A0C, messageQueue=MessageQueue [topic=TopicTest, brokerName=xiajuns-MacBook-Pro.local, queueId=1], queueOffset=0]</div><div class="line"></div><div class="line">Process finished with exit code 0</div></pre></td></tr></table></figure>
+<h1 id="2-同步消息发送原理分析"><a href="#2-同步消息发送原理分析" class="headerlink" title="2 同步消息发送原理分析"></a>2 同步消息发送原理分析</h1><p>RocketMQ网络部署图：<br><img src="http://o8sltkx20.bkt.clouddn.com/rocketmq-sourcecode-1-1.jpeg" alt="RocketMQ网络部署图"></p>
+<p>原理：同步发送是指消息发送方发出数据后，会在收到接收方发回响应之后才发下一个数据包的通讯方式。</p>
+<p><img src="http://o8sltkx20.bkt.clouddn.com/rocketmq-sourcecode-2-1.png" alt="同步消息发送原理示意图"></p>
+<p>应用场景：此种方式应用场景非常广泛，例如重要通知邮件、报名短信通知、营销短信系统等。</p>
+<p>RocketMQ发送同步消息的整体序列图如下：<br><img src="http://o8sltkx20.bkt.clouddn.com/rocketmq-sourcecode-1-2.jpg" alt="RocketMQ同步消息发送整体序列图"></p>
+<p>下面进行具体分析。  </p>
+<h2 id="2-1-发送消息前"><a href="#2-1-发送消息前" class="headerlink" title="2.1 发送消息前"></a>2.1 发送消息前</h2><p>同步消息发送的入口函数是DefaultMQProducer.send(Message msg).<br>发送消息之前需要完成如下事情：   </p>
+<ul>
+<li>创建DefaultMQProducer实例<br>其实就是指定group名字，以及创建了DefaultMQProducerImpl实例。发送晓得具体操作都是在DefaultMQProducerImpl中完成的，DefaultMQProducer只是做了一层封装。  </li>
+<li>给DefaultMQProducer实例设置nameserver地址  </li>
+<li>启动生产者<br>启动过程较复杂，下面详细分析。<br>首先判断服务状态，如果正在运行或者启动失败、已关闭，则抛出异常。否则执行下面的启动流程。  </li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div></pre></td><td class="code"><pre><div class="line">//初始化服务状态为启动失败</div><div class="line">this.serviceState = ServiceState.START_FAILED;</div><div class="line"></div><div class="line">//检查配置，主要是ProducerGroup</div><div class="line">this.checkConfig();</div><div class="line"></div><div class="line">if (!this.defaultMQProducer.getProducerGroup().equals(MixAll.CLIENT_INNER_PRODUCER_GROUP)) &#123;</div><div class="line">    this.defaultMQProducer.changeInstanceNameToPID();</div><div class="line">&#125;</div><div class="line"></div><div class="line">//创建MQClientInstance实例（MQClientInstance是MQ客户端实例，负责执行一些定时任务比如定时更新nameserver地址、从nameserver更新topic路由信息、向broker发送心跳等等。</div><div class="line">//MQClientManager负责创建MQClientInstance，每个clientId只创建一个，第一次创建完成之后存放在一个ConcurrentHashMap中）</div><div class="line">this.mQClientFactory = MQClientManager.getInstance().getAndCreateMQClientInstance(this.defaultMQProducer, rpcHook);</div><div class="line"></div><div class="line">//注册Producer。实际就是将group名、Producer键值对存到producerTable ConcurrentHashMap里</div><div class="line">boolean registerOK = mQClientFactory.registerProducer(this.defaultMQProducer.getProducerGroup(), this);</div><div class="line">if (!registerOK) &#123;</div><div class="line">    this.serviceState = ServiceState.CREATE_JUST;</div><div class="line">    throw new MQClientException(&quot;The producer group[&quot; + this.defaultMQProducer.getProducerGroup()</div><div class="line">            + &quot;] has been created before, specify another name please.&quot; + FAQUrl.suggestTodo(FAQUrl.GROUP_NAME_DUPLICATE_URL),</div><div class="line">            null);</div><div class="line">&#125;</div><div class="line"></div><div class="line">//存储TopicPublishInfo</div><div class="line">this.topicPublishInfoTable.put(this.defaultMQProducer.getCreateTopicKey(), new TopicPublishInfo());</div><div class="line"></div><div class="line">//启动MQClientInstance（startFactory默认是true）</div><div class="line">if (startFactory) &#123;</div><div class="line">    mQClientFactory.start();</div><div class="line">&#125;</div><div class="line"></div><div class="line">log.info(&quot;the producer [&#123;&#125;] start OK. sendMessageWithVIPChannel=&#123;&#125;&quot;, this.defaultMQProducer.getProducerGroup(),</div><div class="line">        this.defaultMQProducer.isSendMessageWithVIPChannel());</div><div class="line">        </div><div class="line">//更改服务状态</div><div class="line">this.serviceState = ServiceState.RUNNING;</div></pre></td></tr></table></figure>
+<h2 id="2-2-发送消息"><a href="#2-2-发送消息" class="headerlink" title="2.2 发送消息"></a>2.2 发送消息</h2><p>序列图：<br><img src="http://o8sltkx20.bkt.clouddn.com/rocketmq-sourcecode-1-3.jpg" alt="同步消息发送具体步骤"></p>
+<p>单步跟进，发现DefaultMQProducer.send(Message msg)会最终调到DefaultMQProducerImpl的这个方法：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">public SendResult send(Message msg, long timeout) throws MQClientException, RemotingException, MQBrokerException, InterruptedException &#123;</div><div class="line">    return this.sendDefaultImpl(msg, CommunicationMode.SYNC, null, timeout);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>可以看到调sendDefaultImpl传递的CommunicationMode是SYNC，是同步模式：  </p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">//三种消息模式枚举类型</div><div class="line">public enum CommunicationMode &#123;</div><div class="line">//同步</div><div class="line">SYNC,</div><div class="line">//异步</div><div class="line">ASYNC,</div><div class="line">//单向</div><div class="line">ONEWAY,</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>接下来调到sendKernelImpl方法，下面摘取重要的部分：  </p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div><div class="line">96</div><div class="line">97</div><div class="line">98</div><div class="line">99</div><div class="line">100</div><div class="line">101</div><div class="line">102</div><div class="line">103</div><div class="line">104</div><div class="line">105</div><div class="line">106</div><div class="line">107</div><div class="line">108</div><div class="line">109</div><div class="line">110</div><div class="line">111</div></pre></td><td class="code"><pre><div class="line">private SendResult sendKernelImpl(final Message msg, //</div><div class="line">                                  final MessageQueue mq, //</div><div class="line">                                  final CommunicationMode communicationMode, //</div><div class="line">                                  final SendCallback sendCallback, //</div><div class="line">                                  final TopicPublishInfo topicPublishInfo, //</div><div class="line">                                  final long timeout) throws MQClientException, RemotingException, MQBrokerException, InterruptedException &#123;</div><div class="line">    //获取broker地址</div><div class="line">    String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());</div><div class="line">    if (null == brokerAddr) &#123;</div><div class="line">        tryToFindTopicPublishInfo(mq.getTopic());</div><div class="line">        brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    SendMessageContext context = null;</div><div class="line">    if (brokerAddr != null) &#123;</div><div class="line">        brokerAddr = MixAll.brokerVIPChannel(this.defaultMQProducer.isSendMessageWithVIPChannel(), brokerAddr);</div><div class="line"></div><div class="line">        byte[] prevBody = msg.getBody();</div><div class="line">        try &#123;</div><div class="line">			  //消息ID生成</div><div class="line">            MessageClientIDSetter.setUniqID(msg);</div><div class="line"></div><div class="line">            int sysFlag = 0;</div><div class="line">            if (this.tryToCompressMessage(msg)) &#123;</div><div class="line">                sysFlag |= MessageSysFlag.CompressedFlag;</div><div class="line">            &#125;</div><div class="line"></div><div class="line">            final String tranMsg = msg.getProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED);</div><div class="line">            if (tranMsg != null &amp;&amp; Boolean.parseBoolean(tranMsg)) &#123;</div><div class="line">                sysFlag |= MessageSysFlag.TransactionPreparedType;</div><div class="line">            &#125;</div><div class="line"></div><div class="line">			  //一些钩子函数执行</div><div class="line">            if (hasCheckForbiddenHook()) &#123;</div><div class="line">                ...</div><div class="line">            &#125;</div><div class="line"></div><div class="line">            if (this.hasSendMessageHook()) &#123;</div><div class="line">                ...</div><div class="line">            &#125;</div><div class="line"></div><div class="line">			  //消息发送请求体构造</div><div class="line">            SendMessageRequestHeader requestHeader = new SendMessageRequestHeader();</div><div class="line">            requestHeader.setProducerGroup(this.defaultMQProducer.getProducerGroup());</div><div class="line">            requestHeader.setTopic(msg.getTopic());</div><div class="line">            requestHeader.setDefaultTopic(this.defaultMQProducer.getCreateTopicKey());</div><div class="line">            requestHeader.setDefaultTopicQueueNums(this.defaultMQProducer.getDefaultTopicQueueNums());</div><div class="line">            requestHeader.setQueueId(mq.getQueueId());</div><div class="line">            requestHeader.setSysFlag(sysFlag);</div><div class="line">            requestHeader.setBornTimestamp(System.currentTimeMillis());</div><div class="line">            requestHeader.setFlag(msg.getFlag());</div><div class="line">            requestHeader.setProperties(MessageDecoder.messageProperties2String(msg.getProperties()));</div><div class="line">            requestHeader.setReconsumeTimes(0);</div><div class="line">            requestHeader.setUnitMode(this.isUnitMode());</div><div class="line">            if (requestHeader.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) &#123;</div><div class="line">                String reconsumeTimes = MessageAccessor.getReconsumeTime(msg);</div><div class="line">                if (reconsumeTimes != null) &#123;</div><div class="line">                    requestHeader.setReconsumeTimes(Integer.valueOf(reconsumeTimes));</div><div class="line">                    MessageAccessor.clearProperty(msg, MessageConst.PROPERTY_RECONSUME_TIME);</div><div class="line">                &#125;</div><div class="line"></div><div class="line">                String maxReconsumeTimes = MessageAccessor.getMaxReconsumeTimes(msg);</div><div class="line">                if (maxReconsumeTimes != null) &#123;</div><div class="line">                    requestHeader.setMaxReconsumeTimes(Integer.valueOf(maxReconsumeTimes));</div><div class="line">                    MessageAccessor.clearProperty(msg, MessageConst.PROPERTY_MAX_RECONSUME_TIMES);</div><div class="line">                &#125;</div><div class="line">            &#125;</div><div class="line"></div><div class="line">            SendResult sendResult = null;</div><div class="line">            switch (communicationMode) &#123;</div><div class="line">                case ASYNC:</div><div class="line">                    sendResult = this.mQClientFactory.getMQClientAPIImpl().sendMessage(//</div><div class="line">                            brokerAddr, // 1</div><div class="line">                            mq.getBrokerName(), // 2</div><div class="line">                            msg, // 3</div><div class="line">                            requestHeader, // 4</div><div class="line">                            timeout, // 5</div><div class="line">                            communicationMode, // 6</div><div class="line">                            sendCallback, // 7</div><div class="line">                            topicPublishInfo, // 8</div><div class="line">                            this.mQClientFactory, // 9</div><div class="line">                            this.defaultMQProducer.getRetryTimesWhenSendAsyncFailed(), // 10</div><div class="line">                            context, //</div><div class="line">                            this);</div><div class="line">                    break;</div><div class="line">                case ONEWAY:</div><div class="line">                case SYNC://同步发送模式</div><div class="line">                    sendResult = this.mQClientFactory.getMQClientAPIImpl().sendMessage(//</div><div class="line">                            brokerAddr, // 1</div><div class="line">                            mq.getBrokerName(), // 2</div><div class="line">                            msg, // 3</div><div class="line">                            requestHeader, // 4</div><div class="line">                            timeout, // 5</div><div class="line">                            communicationMode, // 6</div><div class="line">                            context,//</div><div class="line">                            this);</div><div class="line">                    break;</div><div class="line">                default:</div><div class="line">                    assert false;</div><div class="line">                    break;</div><div class="line">            &#125;</div><div class="line"></div><div class="line">            if (this.hasSendMessageHook()) &#123;</div><div class="line">                context.setSendResult(sendResult);</div><div class="line">                this.executeSendMessageHookAfter(context);</div><div class="line">            &#125;</div><div class="line"></div><div class="line">            return sendResult;</div><div class="line">        </div><div class="line">        ...</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>同步发送模式，最终会调到MQClientAPIImpl的如下方法：  </p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line">private SendResult sendMessageSync(//</div><div class="line">                                   final String addr, //</div><div class="line">                                   final String brokerName, //</div><div class="line">                                   final Message msg, //</div><div class="line">                                   final long timeoutMillis, //</div><div class="line">                                   final RemotingCommand request//</div><div class="line">) throws RemotingException, MQBrokerException, InterruptedException &#123;</div><div class="line">    RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);</div><div class="line">    assert response != null;</div><div class="line">    return this.processSendResponse(brokerName, msg, response);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>会调用RemotingClient.invokeSync发送同步消息。此处的RemotingClient是NettyRemotingClient，封装了Netty通信逻辑。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div></pre></td><td class="code"><pre><div class="line">public RemotingCommand invokeSync(String addr, final RemotingCommand request, long timeoutMillis)</div><div class="line">            throws InterruptedException, RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException &#123;</div><div class="line">    final Channel channel = this.getAndCreateChannel(addr);</div><div class="line">    if (channel != null &amp;&amp; channel.isActive()) &#123;</div><div class="line">        try &#123;</div><div class="line">            if (this.rpcHook != null) &#123;</div><div class="line">                this.rpcHook.doBeforeRequest(addr, request);</div><div class="line">            &#125;</div><div class="line">            RemotingCommand response = this.invokeSyncImpl(channel, request, timeoutMillis);</div><div class="line">            if (this.rpcHook != null) &#123;</div><div class="line">                this.rpcHook.doAfterResponse(RemotingHelper.parseChannelRemoteAddr(channel), request, response);</div><div class="line">            &#125;</div><div class="line">            return response;</div><div class="line">            </div><div class="line">            ...</div><div class="line">&#125;</div><div class="line"></div><div class="line">public RemotingCommand invokeSyncImpl(final Channel channel, final RemotingCommand request, final long timeoutMillis)</div><div class="line">        throws InterruptedException, RemotingSendRequestException, RemotingTimeoutException &#123;</div><div class="line">    final int opaque = request.getOpaque();</div><div class="line"></div><div class="line">    try &#123;</div><div class="line">        final ResponseFuture responseFuture = new ResponseFuture(opaque, timeoutMillis, null, null);</div><div class="line">        this.responseTable.put(opaque, responseFuture);</div><div class="line">        final SocketAddress addr = channel.remoteAddress();</div><div class="line">        </div><div class="line">        //添加监听器</div><div class="line">        channel.writeAndFlush(request).addListener(new ChannelFutureListener() &#123;</div><div class="line">            @Override</div><div class="line">            public void operationComplete(ChannelFuture f) throws Exception &#123;</div><div class="line">                if (f.isSuccess()) &#123;</div><div class="line">                    responseFuture.setSendRequestOK(true);</div><div class="line">                    return;</div><div class="line">                &#125; else &#123;</div><div class="line">                    responseFuture.setSendRequestOK(false);</div><div class="line">                &#125;</div><div class="line"></div><div class="line">                responseTable.remove(opaque);</div><div class="line">                responseFuture.setCause(f.cause());</div><div class="line">                responseFuture.putResponse(null);</div><div class="line">                plog.warn(&quot;send a request command to channel &lt;&quot; + addr + &quot;&gt; failed.&quot;);</div><div class="line">            &#125;</div><div class="line">        &#125;);</div><div class="line"></div><div class="line">		 //线程阻塞等待，获取发送消息的结果</div><div class="line">        RemotingCommand responseCommand = responseFuture.waitResponse(timeoutMillis);</div><div class="line">        if (null == responseCommand) &#123;</div><div class="line">            if (responseFuture.isSendRequestOK()) &#123;</div><div class="line">                throw new RemotingTimeoutException(RemotingHelper.parseSocketAddressAddr(addr), timeoutMillis,</div><div class="line">                        responseFuture.getCause());</div><div class="line">            &#125; else &#123;</div><div class="line">                throw new RemotingSendRequestException(RemotingHelper.parseSocketAddressAddr(addr), responseFuture.getCause());</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        return responseCommand;</div><div class="line">    &#125; finally &#123;</div><div class="line">        this.responseTable.remove(opaque);</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>NettyRemotingAbstract.invokeSyncImpl这里才是真正发送消息的逻辑，底层使用Netty通信。关于netty，我们知道在Netty中所有的IO操作都是异步的，因此，你不能立刻得知消息是否被正确处理，但是我们可以过一会等它执行完成或者直接注册一个监听，具体的实现就是通过Future和ChannelFuture,他们可以注册一个监听，当操作执行成功或失败时监听会自动触发。总之，所有的操作都会返回一个ChannelFuture。</p>
+<p>这里为channelFuture配置了ChannelFutureListener监听器，监听channel的操作结果。如果消息发送成功，则设置ResponseFuture中SendRequestOK为true，return。否则设置为false，并且设置responseFuture中的responseCommand为null。</p>
+<p>在设置了监听器之后，线程会阻塞等待：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">RemotingCommand responseCommand = responseFuture.waitResponse(timeoutMillis);</div><div class="line"></div><div class="line">---</div><div class="line"></div><div class="line">this.countDownLatch.await(timeoutMillis, TimeUnit.MILLISECONDS);</div><div class="line">return this.responseCommand;</div></pre></td></tr></table></figure>
+<p>达到了最大等待时间之后，返回responseCommand。如果为null，则抛出消息发送超时或者其他异常。</p>
+<h1 id="3-参考资料"><a href="#3-参考资料" class="headerlink" title="3 参考资料"></a>3 参考资料</h1><ul>
+<li><a href="http://jm.taobao.org/2016/07/21/3-ways-to-send-message/" target="_blank" rel="external">消息队列三种发送方式</a></li>
+</ul>
+<h2 id="版权声明"><a href="#版权声明" class="headerlink" title="版权声明"></a>版权声明</h2><p>本文首发于<a href="http://xiajunhust.github.io/">江南烟雨的个人博客</a>博客（ <a href="http://xiajunhust.github.io/">http://xiajunhust.github.io/</a> ），版权所有，侵权必究。<br>本文永久链接：<a href="http://xiajunhust.github.io/2016/11/12/RocketMQ源码学习之二-同步消息发送/">http://xiajunhust.github.io/2016/11/12/RocketMQ源码学习之二-同步消息发送/</a></p>
+
+      
+    </div>
+
+
+	<!-- css -->
+	<style type="text/css">
+	    .center {
+	        text-align: center;
+	    }
+	    .hidden {
+	        display: none;
+	    }
+		.donate_bar a.btn_donate{
+			display: inline-block;
+			width: 82px;
+			height: 82px;
+			background: url("http://7xsl28.com1.z0.glb.clouddn.com/btn_reward.gif") no-repeat;
+			_background: url("http://7xsl28.com1.z0.glb.clouddn.com/btn_reward.gif") no-repeat;
+
+			<!-- http://img.t.sinajs.cn/t5/style/images/apps_PRF/e_media/btn_reward.gif
+			     因为本 hexo 生成的博客所用的 theme 的 a:hover 带动画效果，
+				 为了在让打赏按钮显示效果正常 而 添加了以下几行 css，
+				 嵌入其它博客时不一定要它们。 -->
+			-webkit-transition: background 0s;
+			-moz-transition: background 0s;
+			-o-transition: background 0s;
+			-ms-transition: background 0s;
+			transition: background 0s;
+			<!-- /让打赏按钮的效果显示正常 而 添加的几行 css 到此结束 -->
+		}
+
+		.donate_bar a.btn_donate:hover{ background-position: 0px -82px;}
+		.donate_bar .donate_txt {
+			display: block;
+			color: #9d9d9d;
+			font: 14px/2 "Microsoft Yahei";
+		}
+		.bold{ font-weight: bold; }
+	</style>
+	<!-- /css -->
+
+    <!-- Donate Module -->
+    <div id="donate_module">
+
+	<!-- btn_donate & tips -->
+	<div id="donate_board" class="donate_bar center">
+	    <br>
+	    ------------------------------------------------------------------------------------------------------------------------------
+	    <br>
+		<a id="btn_donate" class="btn_donate" target="_self" href="javascript:;" title="Donate 打赏"></a>
+		<span class="donate_txt">
+			打赏我的人，运气都不会太差~
+		</span>
+			
+		
+	</div>
+	<!-- /btn_donate & tips -->
+
+	<!-- donate guide -->
+    
+	<div id="donate_guide" class="donate_bar center hidden">
+        <br>
+	    ------------------------------------------------------------------------------------------------------------------------------
+	    <br>
+	    
+	    <div width="100%" align="center"><div name="dashmain" id="dash-main-id-87895f" class="dash-main-3 87895f-0.99"></div></div>
+		<script type="text/javascript" charset="utf-8" src="http://www.dashangcloud.com/static/ds.js"></script>
+		
+
+		<a href="http://o8sltkx20.bkt.clouddn.com/0004.jpg" title="用微信扫一扫哦~" class="fancybox" rel="article0">
+			<img src="http://o8sltkx20.bkt.clouddn.com/0004.jpg" title="微信打赏 Donate" height="190px" width="auto"/>
+		</a>
+        
+        &nbsp;&nbsp;
+
+		<a href="http://o8sltkx20.bkt.clouddn.com/0002.jpg" title="用支付宝扫一扫即可~" class="fancybox" rel="article0">
+			<img src="http://o8sltkx20.bkt.clouddn.com/0002.jpg" title="支付宝打赏 Donate" height="190px" width="auto"/>
+		</a>
+
+		<span class="donate_txt">
+			打赏我的人，运气都不会太差~
+		</span>
+
+	</div>
+	<!-- /donate guide -->
+
+	<!-- donate script -->
+	<script type="text/javascript">
+		document.getElementById('btn_donate').onclick = function() {
+			$('#donate_board').addClass('hidden');
+	    $('#donate_guide').removeClass('hidden');
+		}
+
+		function donate_on_web(){
+			$('#donate').submit();
+        }
+
+		var original_window_onload = window.onload;
+        window.onload = function () {
+            if (original_window_onload) {
+                original_window_onload();
+            }
+            document.getElementById('donate_board_wdg').className = 'hidden';
+		}
+	</script>
+	<!-- /donate script -->
+</div>
+<!-- /Donate Module -->
+   
+
+    <footer class="article-footer">
+      <a data-url="http://xiajunhust.github.io/2016/11/12/RocketMQ源码学习之二-同步消息发送/" data-id="ciwp0htcr000eqiwfw4gmx84w" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/RocketMQ/">RocketMQ</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2016/11/14/RocketMQ源码学习之三-异步消息发送/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          RocketMQ源码学习之三-异步消息发送
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2016/11/12/RocketMQ源码学习之一-MAC系统单机环境搭建/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">RocketMQ源码学习之一-MAC单机环境搭建</div>
+    </a>
+  
+</nav>
+
+  
+
+
+  <section id="comments">
+   <!-- 多说评论框 start -->
+<div id="ds-thread" class="ds-thread" data-thread-key="2016/11/12/RocketMQ源码学习之二-同步消息发送/" data-title="RocketMQ源码学习之二-同步消息发送" data-url="http://xiajunhust.github.io/2016/11/12/RocketMQ源码学习之二-同步消息发送/"></div>
+<!-- 多说评论框 end -->
+<!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+<script type="text/javascript">
+var duoshuoQuery = {short_name:"xiajun"};
+	(function() {
+		var ds = document.createElement('script');
+		ds.type = 'text/javascript';ds.async = true;
+		ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+		ds.charset = 'UTF-8';
+		(document.getElementsByTagName('head')[0] 
+		 || document.getElementsByTagName('body')[0]).appendChild(ds);
+	})();
+	</script>
+<!-- 多说公共JS代码 end -->
+  </section>
+  
+
+</article>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/InfluxDB/">InfluxDB</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Java/">Java</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/MySQL/">MySQL</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/RocketMQ/">RocketMQ</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/代码设计/">代码设计</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/开发工具/">开发工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/思考-读书笔记/">思考&读书笔记</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/测试技术/">测试技术</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/InfluxDB/" style="font-size: 10px;">InfluxDB</a> <a href="/tags/Java/" style="font-size: 15px;">Java</a> <a href="/tags/MySQL/" style="font-size: 15px;">MySQL</a> <a href="/tags/RocketMQ/" style="font-size: 20px;">RocketMQ</a> <a href="/tags/代码设计/" style="font-size: 10px;">代码设计</a> <a href="/tags/开发工具/" style="font-size: 15px;">开发工具</a> <a href="/tags/思考-读书笔记/" style="font-size: 10px;">思考&读书笔记</a> <a href="/tags/测试技术/" style="font-size: 10px;">测试技术</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">归档</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">十二月 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/11/">十一月 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">八月 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2016/12/13/InfluxDB写入失败-partial-write-max-values-per-tag-limit-exceeded/">InfluxDB写入失败-partial write: max-values-per-tag limit exceeded</a>
+          </li>
+        
+          <li>
+            <a href="/2016/11/17/RocketMQ源码学习之四-PushConsumer/">RocketMQ源码学习之四-PushConsumer</a>
+          </li>
+        
+          <li>
+            <a href="/2016/11/14/RocketMQ源码学习之三-异步消息发送/">RocketMQ源码学习之三-异步消息发送</a>
+          </li>
+        
+          <li>
+            <a href="/2016/11/12/RocketMQ源码学习之二-同步消息发送/">RocketMQ源码学习之二-同步消息发送</a>
+          </li>
+        
+          <li>
+            <a href="/2016/11/12/RocketMQ源码学习之一-MAC系统单机环境搭建/">RocketMQ源码学习之一-MAC单机环境搭建</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    <iframe width="100%" height="550" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=1&isTitle=1&noborder=1&isWeibo=1&isFans=1&uid=1618991481&verifier=6bf885be&dpc=1"></iframe>
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+   
+    <div id="footer-info" class="inner">
+      &copy; 2016 江南烟雨<br>
+     本站总访问量<span id="busuanzi_value_site_pv"></span>次</br>
+     本站访客数<span id="busuanzi_value_site_uv"></span>人次</br>
+
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://o8sltkx20.bkt.clouddn.com/jquery-2.0.3.min.js"></script>
+
+<script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+  </div>
+</body>
+</html>

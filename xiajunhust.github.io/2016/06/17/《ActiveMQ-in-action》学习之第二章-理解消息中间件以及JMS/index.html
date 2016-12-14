@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <title>《ActiveMQ in action》学习之第二章-理解消息中间件以及JMS | 江南烟雨的个人博客</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="内容概要《ActiveMQ实战》第二章学习笔记，消息中间件以及JMS基础知识学习。
+基本概念什么是MOM？MOM是的消息发送者和接收者之间松耦合。发送者不必知道接收者的任何信息，接收者也不必知道发送者的任何事情，即异步消息。MOM提供了紧耦合系统之间不具有的优点：消息持久化，在不可靠连接情况下的鲁棒通信、复杂路由、消息转换等等。
+什么是JMS？JMS本身不是MOM，他是一种API，抽象了消息客户端">
+<meta property="og:type" content="article">
+<meta property="og:title" content="《ActiveMQ in action》学习之第二章-理解消息中间件以及JMS">
+<meta property="og:url" content="http://xiajunhust.github.io/2016/06/17/《ActiveMQ-in-action》学习之第二章-理解消息中间件以及JMS/index.html">
+<meta property="og:site_name" content="江南烟雨的个人博客">
+<meta property="og:description" content="内容概要《ActiveMQ实战》第二章学习笔记，消息中间件以及JMS基础知识学习。
+基本概念什么是MOM？MOM是的消息发送者和接收者之间松耦合。发送者不必知道接收者的任何信息，接收者也不必知道发送者的任何事情，即异步消息。MOM提供了紧耦合系统之间不具有的优点：消息持久化，在不可靠连接情况下的鲁棒通信、复杂路由、消息转换等等。
+什么是JMS？JMS本身不是MOM，他是一种API，抽象了消息客户端">
+<meta property="og:image" content="http://o8sltkx20.bkt.clouddn.com/5.png">
+<meta property="og:image" content="http://o8sltkx20.bkt.clouddn.com/6.png">
+<meta property="og:image" content="http://o8sltkx20.bkt.clouddn.com/7.png">
+<meta property="og:updated_time" content="2016-06-17T13:23:13.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="《ActiveMQ in action》学习之第二章-理解消息中间件以及JMS">
+<meta name="twitter:description" content="内容概要《ActiveMQ实战》第二章学习笔记，消息中间件以及JMS基础知识学习。
+基本概念什么是MOM？MOM是的消息发送者和接收者之间松耦合。发送者不必知道接收者的任何信息，接收者也不必知道发送者的任何事情，即异步消息。MOM提供了紧耦合系统之间不具有的优点：消息持久化，在不可靠连接情况下的鲁棒通信、复杂路由、消息转换等等。
+什么是JMS？JMS本身不是MOM，他是一种API，抽象了消息客户端">
+<meta name="twitter:image" content="http://o8sltkx20.bkt.clouddn.com/5.png">
+  
+    <link rel="alternate" href="/atom.xml" title="江南烟雨的个人博客" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  <link rel="stylesheet" href="/css/style.css">
+  
+
+</head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">江南烟雨的个人博客</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">从事互联网+电商+金融后台开发，对Java分布式开发有浓厚兴趣。欢迎来信交流xiajun.0706@163.com</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="搜索"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://xiajunhust.github.io"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-《ActiveMQ-in-action》学习之第二章-理解消息中间件以及JMS" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2016/06/17/《ActiveMQ-in-action》学习之第二章-理解消息中间件以及JMS/" class="article-date">
+  <time datetime="2016-06-17T12:15:53.000Z" itemprop="datePublished">2016-06-17</time>
+</a>
+    
+  </div>
+
+  <!-- 文章访问量统计  -->
+  <span id="busuanzi_container_page_pv" style='display:none'>
+    <span id="busuanzi_value_page_pv"></span> Hits
+  </span>
+
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      《ActiveMQ in action》学习之第二章-理解消息中间件以及JMS
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="内容概要"><a href="#内容概要" class="headerlink" title="内容概要"></a>内容概要</h1><p>《ActiveMQ实战》第二章学习笔记，消息中间件以及JMS基础知识学习。</p>
+<h1 id="基本概念"><a href="#基本概念" class="headerlink" title="基本概念"></a>基本概念</h1><h2 id="什么是MOM？"><a href="#什么是MOM？" class="headerlink" title="什么是MOM？"></a>什么是MOM？</h2><p>MOM是的消息发送者和接收者之间松耦合。发送者不必知道接收者的任何信息，接收者也不必知道发送者的任何事情，即异步消息。<br>MOM提供了紧耦合系统之间不具有的优点：消息持久化，在不可靠连接情况下的鲁棒通信、复杂路由、消息转换等等。</p>
+<h2 id="什么是JMS？"><a href="#什么是JMS？" class="headerlink" title="什么是JMS？"></a>什么是JMS？</h2><p>JMS本身不是MOM，他是一种API，抽象了消息客户端和MOM之间的连接，就像JDBC抽象了和关系数据库之间的连接。下图展示了JMS提供了API供消息客户端和具体的MOM JMS提供商之间的交互：<br><img src="http://o8sltkx20.bkt.clouddn.com/5.png" alt=""></p>
+<h1 id="一些特性"><a href="#一些特性" class="headerlink" title="一些特性"></a>一些特性</h1><h2 id="消息选择"><a href="#消息选择" class="headerlink" title="消息选择"></a>消息选择</h2><p>如果消息接收端只想接收某些类型的消息,则可以使用消息选择功能。消息选择器由SQL92子集定义的条件表达式组成。 消息选择器只能依据消息头和属性来过滤,不能依据消息体来过滤。</p>
+<h2 id="JMS的两种domain"><a href="#JMS的两种domain" class="headerlink" title="JMS的两种domain"></a>JMS的两种domain</h2><ul>
+<li>点对点  </li>
+</ul>
+<p>消息的目的地是一个队列。消息能够以同步或异步的方式被发送和接收。队列接收到的每个消息会被立即发送出去,并且只会被发送给一个消费者。消 费者能够以同步方式(MessageConsumer.receive方法)或者异步方式(MessageConsumer.setMessageListener)从队列接收消息。队列将会一直保存消 息,直至消息被消费或者过期。<br>同一个队列上可以注册多个消费者,但是一个消息只能被一个消费者接收。JMS provider保证一条消息只会被投递一次,并且只会被投递给一个消费 者。JMS provider会轮询已注册的所有消费者,来投递消息。<br><img src="http://o8sltkx20.bkt.clouddn.com/6.png" alt=""></p>
+<ul>
+<li>发布/订阅</li>
+</ul>
+<p>消息发送的目的地是topic。所有发送到该topic上的消息会被投送给该topic的所有订阅者。<br><img src="http://o8sltkx20.bkt.clouddn.com/7.png" alt=""></p>
+<p>与点对点类似,消息订阅者可以以同步或者异步的方式接收消息。默认,topic不会保存消息,除非显式进行持久化订阅。如果采用持久化订阅,JMS provider负责在订阅者离线的时候保存消息。一旦订阅者重新与provider建立连接,便会收到所有的未过期的消息。</p>
+<p>区别message durability &amp; message persistence<br>这两个概念很容易混淆,虽然类似,但是有语义上的区别以及各自的目的。Message durability只存在于发布/订阅模式。<br>而message persistence和哪种模式没有关系,它是一种服务属性,用来只是jms应用在jms provider失败期间保存丢失的消息。调用消息生产者的 setDeliveryMode方法可以设置值(JMSDeliveryMode.PERSISTENCE,NOT_PERSISTENCE)。</p>
+<h3 id="版权声明"><a href="#版权声明" class="headerlink" title="版权声明"></a>版权声明</h3><p>本文首发于<a href="http://xiajunhust.github.io/">江南烟雨的个人博客</a>博客（ <a href="http://xiajunhust.github.io/">http://xiajunhust.github.io/</a> ），版权所有，侵权必究。<br>本文永久链接：<a href="http://xiajunhust.github.io/2016/06/17/《ActiveMQ-in-action》学习之第二章-理解消息中间件以及JMS/">http://xiajunhust.github.io/2016/06/17/《ActiveMQ-in-action》学习之第二章-理解消息中间件以及JMS/</a></p>
+
+      
+
+		
+			<!-- css -->
+			<style type="text/css">
+			    .center {
+			        text-align: center;
+			    }
+			    .hidden {
+			        display: none;
+			    }
+				.donate_bar a.btn_donate{
+					display: inline-block;
+					width: 82px;
+					height: 82px;
+					background: url("http://7xsl28.com1.z0.glb.clouddn.com/btn_reward.gif") no-repeat;
+					_background: url("http://7xsl28.com1.z0.glb.clouddn.com/btn_reward.gif") no-repeat;
+
+					<!-- http://img.t.sinajs.cn/t5/style/images/apps_PRF/e_media/btn_reward.gif
+					     因为本 hexo 生成的博客所用的 theme 的 a:hover 带动画效果，
+						 为了在让打赏按钮显示效果正常 而 添加了以下几行 css，
+						 嵌入其它博客时不一定要它们。 -->
+					-webkit-transition: background 0s;
+					-moz-transition: background 0s;
+					-o-transition: background 0s;
+					-ms-transition: background 0s;
+					transition: background 0s;
+					<!-- /让打赏按钮的效果显示正常 而 添加的几行 css 到此结束 -->
+				}
+
+				.donate_bar a.btn_donate:hover{ background-position: 0px -82px;}
+				.donate_bar .donate_txt {
+					display: block;
+					color: #9d9d9d;
+					font: 14px/2 "Microsoft Yahei";
+				}
+				.bold{ font-weight: bold; }
+			</style>
+			<!-- /css -->
+
+		    <!-- Donate Module -->
+		    <div id="donate_module">
+
+			<!-- btn_donate & tips -->
+			<div id="donate_board" class="donate_bar center">
+			    <br>
+			    ------------------------------------------------------------------------------------------------------------------------------
+			    <br>
+				<a id="btn_donate" class="btn_donate" target="_self" href="javascript:;" title="Donate 打赏"></a>
+				<span class="donate_txt">
+					打赏我的人，运气都不会太差~
+				</span>
+					
+				
+			</div>
+			<!-- /btn_donate & tips -->
+
+			<!-- donate guide -->
+		    
+			<div id="donate_guide" class="donate_bar center hidden">
+		        <br>
+			    ------------------------------------------------------------------------------------------------------------------------------
+			    <br>
+			    
+			    <div width="100%" align="center"><div name="dashmain" id="dash-main-id-87895f" class="dash-main-3 87895f-0.99"></div></div>
+				<script type="text/javascript" charset="utf-8" src="http://www.dashangcloud.com/static/ds.js"></script>
+				
+
+				<a href="http://o8sltkx20.bkt.clouddn.com/0007.jpg" title="用微信扫一扫哦~" class="fancybox" rel="article0">
+					<img src="http://o8sltkx20.bkt.clouddn.com/0007.jpg" title="微信打赏 Donate" height="190px" width="auto"/>
+				</a>
+		        
+		        &nbsp;&nbsp;
+
+				<a href="http://o8sltkx20.bkt.clouddn.com/0006.jpg" title="用支付宝扫一扫即可~" class="fancybox" rel="article0">
+					<img src="http://o8sltkx20.bkt.clouddn.com/0006.jpg" title="支付宝打赏 Donate" height="190px" width="auto"/>
+				</a>
+
+				<span class="donate_txt">
+					打赏我的人，运气都不会太差~
+				</span>
+
+			</div>
+			<!-- /donate guide -->
+
+			<!-- donate script -->
+			<script type="text/javascript">
+				document.getElementById('btn_donate').onclick = function() {
+					$('#donate_board').addClass('hidden');
+			    $('#donate_guide').removeClass('hidden');
+				}
+
+				function donate_on_web(){
+					$('#donate').submit();
+		        }
+
+				var original_window_onload = window.onload;
+		        window.onload = function () {
+		            if (original_window_onload) {
+		                original_window_onload();
+		            }
+		            document.getElementById('donate_board_wdg').className = 'hidden';
+				}
+			</script>
+			<!-- /donate script -->
+		</div>
+		<!-- /Donate Module -->
+		   
+
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://xiajunhust.github.io/2016/06/17/《ActiveMQ-in-action》学习之第二章-理解消息中间件以及JMS/" data-id="cipl4fh9900056nxkrvja7tut" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/消息中间件/">消息中间件</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2016/06/18/代码设计-命名太长了！/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          代码中的命名问题-命名太长了！
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2016/06/16/Hexo-GitHub搭建个人博客-增加评论功能/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">Hexo GitHub搭建个人博客-增加评论以及访问量统计功能</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+  
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-《ActiveMQ-in-action》学习之第二章-理解消息中间件以及JMS" data-title="《ActiveMQ in action》学习之第二章-理解消息中间件以及JMS" data-url="http://xiajunhust.github.io/2016/06/17/《ActiveMQ-in-action》学习之第二章-理解消息中间件以及JMS/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'xiajun'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+  
+</section>
+        
+          <aside id="sidebar">
+  
+    
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/代码设计/">代码设计</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/开发工具/">开发工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息中间件/">消息中间件</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/代码设计/" style="font-size: 10px;">代码设计</a> <a href="/tags/开发工具/" style="font-size: 20px;">开发工具</a> <a href="/tags/消息中间件/" style="font-size: 10px;">消息中间件</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">归档</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">六月 2016</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2016/06/18/代码设计-命名太长了！/">代码中的命名问题-命名太长了！</a>
+          </li>
+        
+          <li>
+            <a href="/2016/06/17/《ActiveMQ-in-action》学习之第二章-理解消息中间件以及JMS/">《ActiveMQ in action》学习之第二章-理解消息中间件以及JMS</a>
+          </li>
+        
+          <li>
+            <a href="/2016/06/16/Hexo-GitHub搭建个人博客-增加评论功能/">Hexo GitHub搭建个人博客-增加评论以及访问量统计功能</a>
+          </li>
+        
+          <li>
+            <a href="/2016/06/15/Hexo-GitHub环境搭建-添加README/">Hexo GitHub搭建个人博客-添加README</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    <iframe width="100%" height="550" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=1&isTitle=1&noborder=1&isWeibo=1&isFans=1&uid=1618991481&verifier=6bf885be&dpc=1"></iframe>
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2016 江南烟雨<br>
+      <span id="busuanzi_container_site_pv" style='display:none'>
+        Total <span id="busuanzi_value_site_pv"></span> views<br>
+      </span>
+      <span id="busuanzi_container_site_uv" style='display:none'>
+        您是访问本站的第<span id="busuanzi_value_site_uv"></span>个小伙伴<br>
+      </span>      
+Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+<script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+  </div>
+</body>
+</html>

@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <title>RocketMQ源码学习之一-MAC单机环境搭建 | 江南烟雨的个人博客</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="本文讲述如何在单机（MAC）上搭建RocketMQ环境，实现正常收发消息。
+1 安装JDK、maven等工具忽略。
+2 部署RocketMQ服务端从https://github.com/alibaba/RocketMQ下载压缩包，并解压。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="RocketMQ源码学习之一-MAC单机环境搭建">
+<meta property="og:url" content="http://xiajunhust.github.io/2016/11/12/RocketMQ源码学习之一-MAC系统单机环境搭建/index.html">
+<meta property="og:site_name" content="江南烟雨的个人博客">
+<meta property="og:description" content="本文讲述如何在单机（MAC）上搭建RocketMQ环境，实现正常收发消息。
+1 安装JDK、maven等工具忽略。
+2 部署RocketMQ服务端从https://github.com/alibaba/RocketMQ下载压缩包，并解压。">
+<meta property="og:image" content="http://o8sltkx20.bkt.clouddn.com/rocketmq-install-1.png">
+<meta property="og:image" content="http://o8sltkx20.bkt.clouddn.com/rocketmq-install-2.png">
+<meta property="og:image" content="http://o8sltkx20.bkt.clouddn.com/rocketmq-install-3.png">
+<meta property="og:image" content="http://o8sltkx20.bkt.clouddn.com/rocketmq-install-4.png">
+<meta property="og:image" content="http://o8sltkx20.bkt.clouddn.com/rocketmq-install-5.png">
+<meta property="og:image" content="http://o8sltkx20.bkt.clouddn.com/rocketmq-install-6.png">
+<meta property="og:image" content="http://o8sltkx20.bkt.clouddn.com/rocketmq-install-7.png">
+<meta property="og:image" content="http://o8sltkx20.bkt.clouddn.com/rocketmq-install-8.png">
+<meta property="og:image" content="http://o8sltkx20.bkt.clouddn.com/rocketmq-install-9.png">
+<meta property="og:image" content="http://o8sltkx20.bkt.clouddn.com/rocketmq-install-10.jpeg">
+<meta property="og:updated_time" content="2016-11-14T08:19:04.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="RocketMQ源码学习之一-MAC单机环境搭建">
+<meta name="twitter:description" content="本文讲述如何在单机（MAC）上搭建RocketMQ环境，实现正常收发消息。
+1 安装JDK、maven等工具忽略。
+2 部署RocketMQ服务端从https://github.com/alibaba/RocketMQ下载压缩包，并解压。">
+<meta name="twitter:image" content="http://o8sltkx20.bkt.clouddn.com/rocketmq-install-1.png">
+  
+    <link rel="alternate" href="/atom.xml" title="江南烟雨的个人博客" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  <link rel="stylesheet" href="/css/style.css">
+  
+
+</head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">江南烟雨的个人博客</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="搜索"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://xiajunhust.github.io"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-RocketMQ源码学习之一-MAC系统单机环境搭建" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2016/11/12/RocketMQ源码学习之一-MAC系统单机环境搭建/" class="article-date">
+  <time datetime="2016-11-12T02:48:59.000Z" itemprop="datePublished">2016-11-12</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      RocketMQ源码学习之一-MAC单机环境搭建
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>本文讲述如何在单机（MAC）上搭建RocketMQ环境，实现正常收发消息。</p>
+<h1 id="1-安装JDK、maven等工具"><a href="#1-安装JDK、maven等工具" class="headerlink" title="1 安装JDK、maven等工具"></a>1 安装JDK、maven等工具</h1><p>忽略。</p>
+<h1 id="2-部署RocketMQ服务端"><a href="#2-部署RocketMQ服务端" class="headerlink" title="2 部署RocketMQ服务端"></a>2 部署RocketMQ服务端</h1><p>从<a href="https://github.com/alibaba/RocketMQ" target="_blank" rel="external">https://github.com/alibaba/RocketMQ</a>下载压缩包，并解压。</p>
+<a id="more"></a>
+<p>执行如下命令安装：<br>sh install.sh<br><img src="http://o8sltkx20.bkt.clouddn.com/rocketmq-install-1.png" alt=""></p>
+<p>进入devenv/bin目录修改相关文件的执行权限：<br>cd /root/RocketMQ-3.4.6/devenv/bin<br>chmod +x mqadmin mqbroker mqfiltersrv mqshutdown mqnamesrv</p>
+<p>设置nameserver地址的环境变量：<br>export NAMESRV_ADDR=192.168.2.101:9876(改为自己的机器的IP)  </p>
+<p>然后接下来启动nameserver以及broker（注意一定要先启动nameserver，然后再启动broker）：<br>nohup ./mqnamesrv &gt;/var/log/mqname.log &amp;<br>nohup ./mqbroker &gt;/var/log/mqbroker.log &amp;  </p>
+<p>相应的关闭命令如下：<br>sh mqshutdown broker<br>sh mqshutdown namesrv</p>
+<p>观察/var/log/下的启动日志mqname.log、mqbroker.log发现有如下异常：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">ERROR: Please set the JAVA_HOME variable in your environment, We need Java(x64)! !!</div></pre></td></tr></table></figure></p>
+<p>打开启动脚本runserver.sh以及runbroker.sh文件，发现有如下三行： </p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">[ ! -e &quot;$JAVA_HOME/bin/java&quot; ] &amp;&amp; JAVA_HOME=$HOME/jdk/java</div><div class="line"></div><div class="line">[ ! -e &quot;$JAVA_HOME/bin/java&quot; ] &amp;&amp; JAVA_HOME=/opt/taobao/java</div><div class="line"></div><div class="line">[ ! -e &quot;$JAVA_HOME/bin/java&quot; ] &amp;&amp; error_exit &quot;Please set the JAVA_HOME variable in your environment, We need java(x64)!&quot;</div></pre></td></tr></table></figure>
+<p>其中第二行是阿里巴巴集团内部服务器上的java目录，将这一行注释掉。然后第一行的JAVA_HOME的值改为自己机器的Java安装目录。然后再次起送mqnameserver以及mqbroker，观察日志发现启动成功：<br><img src="http://o8sltkx20.bkt.clouddn.com/rocketmq-install-2.png" alt=""></p>
+<p>可以通过jps查看进程运行状态：<br><img src="http://o8sltkx20.bkt.clouddn.com/rocketmq-install-3.png" alt=""></p>
+<h1 id="3-运行Producer发送消息"><a href="#3-运行Producer发送消息" class="headerlink" title="3 运行Producer发送消息"></a>3 运行Producer发送消息</h1><p>新建java maven工程，pom.xml需要增加对RocketMQ的如下依赖:  </p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line">&lt;dependency&gt;</div><div class="line">    &lt;groupId&gt;com.alibaba.rocketmq&lt;/groupId&gt;</div><div class="line">    &lt;artifactId&gt;rocketmq-client&lt;/artifactId&gt;</div><div class="line">    &lt;version&gt;3.5.9&lt;/version&gt;</div><div class="line">&lt;/dependency&gt;</div><div class="line"></div><div class="line">&lt;dependency&gt;</div><div class="line">    &lt;groupId&gt;com.alibaba.rocketmq&lt;/groupId&gt;</div><div class="line">    &lt;artifactId&gt;rocketmq-srvutil&lt;/artifactId&gt;</div><div class="line">    &lt;version&gt;3.2.6&lt;/version&gt;</div><div class="line">&lt;/dependency&gt;</div></pre></td></tr></table></figure>
+<p>Producer.java:  </p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div></pre></td><td class="code"><pre><div class="line">public class Producer &#123;</div><div class="line">  public static void main(String[] args) throws MQClientException, InterruptedException &#123;</div><div class="line">    DefaultMQProducer producer = new DefaultMQProducer(&quot;ProducerGroupName&quot;);</div><div class="line">    producer.setNamesrvAddr(&quot;192.168.2.101:9876&quot;);</div><div class="line">    producer.setInstanceName(&quot;Producer&quot;);</div><div class="line">    producer.start();</div><div class="line">    for (int i = 0; i &lt; 1; i++)</div><div class="line">      try &#123;</div><div class="line">        &#123;</div><div class="line">          Message msg = new Message(&quot;TopicTest&quot;,// topic</div><div class="line">                                    &quot;TagA&quot;,// tag</div><div class="line">                                    &quot;OrderID188&quot;,// key</div><div class="line">                                    (&quot;Hello MetaQ&quot;).getBytes());// body</div><div class="line">          SendResult sendResult = producer.send(msg);</div><div class="line">          System.out.println(sendResult);</div><div class="line">        &#125;</div><div class="line"></div><div class="line">      &#125;</div><div class="line">      catch (Exception e) &#123;</div><div class="line">        e.printStackTrace();</div><div class="line">      &#125;</div><div class="line"></div><div class="line">    producer.shutdown();</div><div class="line">  &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>运行消息生产者，报错找不到对应topic的路由信息：<br><img src="http://o8sltkx20.bkt.clouddn.com/rocketmq-install-4.png" alt=""></p>
+<p>原因因为需要先正确设置nameserver，然后启动mqnamesrv，最后启动mqbroker。  </p>
+<p>之后再次运行消息producer，依然报错：消息发送失败，原因是连接失败。<br><img src="http://o8sltkx20.bkt.clouddn.com/rocketmq-install-5.png" alt="">  </p>
+<p>发现连接的地址是ifonfig中的这个地址：<br><img src="http://o8sltkx20.bkt.clouddn.com/rocketmq-install-6.png" alt="">  </p>
+<p>查看pid，发现是VPN应用进程：<br><img src="http://o8sltkx20.bkt.clouddn.com/rocketmq-install-7.png" alt="">  </p>
+<p>杀掉进程。</p>
+<p>然后重启mqsrv以及mqbroker，发现恢复正常：<br><img src="http://o8sltkx20.bkt.clouddn.com/rocketmq-install-8.png" alt="">  </p>
+<p>再次运行Producer，消息发送成功：<br><img src="http://o8sltkx20.bkt.clouddn.com/rocketmq-install-9.png" alt=""></p>
+<h1 id="4-运行Consumer消费消息"><a href="#4-运行Consumer消费消息" class="headerlink" title="4 运行Consumer消费消息"></a>4 运行Consumer消费消息</h1><p>consumer.java:  </p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div></pre></td><td class="code"><pre><div class="line">public class Consumer &#123;</div><div class="line"></div><div class="line">  public static void main(String[] args) throws InterruptedException, MQClientException &#123;</div><div class="line">    DefaultMQPushConsumer</div><div class="line">        consumer = new DefaultMQPushConsumer(&quot;please_rename_unique_group_name_4&quot;);</div><div class="line">    consumer.setVipChannelEnabled(false);</div><div class="line">    consumer.setNamesrvAddr(&quot;192.168.2.101:9876&quot;);</div><div class="line"></div><div class="line">    consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);</div><div class="line"></div><div class="line">    consumer.subscribe(&quot;TopicTest&quot;, &quot;*&quot;);</div><div class="line"></div><div class="line">    consumer.registerMessageListener(new MessageListenerConcurrently() &#123;</div><div class="line"></div><div class="line">      public ConsumeConcurrentlyStatus consumeMessage(List&lt;MessageExt&gt; msgs,</div><div class="line">                                                      ConsumeConcurrentlyContext context) &#123;</div><div class="line">        System.out.println(Thread.currentThread().getName() + &quot; Receive New Messages: &quot; + msgs);</div><div class="line">        return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;</div><div class="line">      &#125;</div><div class="line">    &#125;);</div><div class="line"></div><div class="line">    consumer.start();</div><div class="line"></div><div class="line">    System.out.println(&quot;Consumer Started.&quot;);</div><div class="line">  &#125;</div></pre></td></tr></table></figure>
+<p>运行consumer，消费消息成功：<br><img src="http://o8sltkx20.bkt.clouddn.com/rocketmq-install-10.jpeg" alt=""></p>
+<h1 id="5-一些有用的运维命令"><a href="#5-一些有用的运维命令" class="headerlink" title="5 一些有用的运维命令"></a>5 一些有用的运维命令</h1><ul>
+<li>查看集群情况<br>/usr/local/alibaba-rocketmq/bin/mqadmin clusterList -n 127.0.0.1:9876</li>
+<li>查看broker状态<br>/usr/local/alibaba-rocketmq/bin/mqadmin brokerStatus -n 127.0.0.1:9876 -b 192.168.162.10:10911  </li>
+<li>查看topic列表<br>/usr/local/alibaba-rocketmq/bin/mqadmin topicList -n 127.0.0.1:9876</li>
+<li>查看topic状态<br>/usr/local/alibaba-rocketmq/bin/mqadmin topicStatus -n 127.0.0.1:9876 -t PushTopic</li>
+<li>查看topic路由<br>/usr/local/alibaba-rocketmq/bin/mqadmin topicRoute  -n 127.0.0.1:9876 -t PushTopic</li>
+</ul>
+<h1 id="6-参考资料"><a href="#6-参考资料" class="headerlink" title="6 参考资料"></a>6 参考资料</h1><ul>
+<li><a href="https://my.oschina.net/lenglingx/blog/734558" target="_blank" rel="external">https://my.oschina.net/lenglingx/blog/734558</a></li>
+<li><a href="https://github.com/alibaba/RocketMQ/issues/44" target="_blank" rel="external">https://github.com/alibaba/RocketMQ/issues/44</a></li>
+<li><a href="http://blog.chinaunix.net/uid-26111972-id-5750397.html" target="_blank" rel="external">http://blog.chinaunix.net/uid-26111972-id-5750397.html</a></li>
+<li><a href="http://www.tuicool.com/articles/mEBVneB" target="_blank" rel="external">http://www.tuicool.com/articles/mEBVneB</a></li>
+</ul>
+<h2 id="版权声明"><a href="#版权声明" class="headerlink" title="版权声明"></a>版权声明</h2><p>本文首发于<a href="http://xiajunhust.github.io/">江南烟雨的个人博客</a>博客（ <a href="http://xiajunhust.github.io/">http://xiajunhust.github.io/</a> ），版权所有，侵权必究。<br>本文永久链接：<a href="http://xiajunhust.github.io/2016/11/12/RocketMQ源码学习之一-MAC系统单机环境搭建/">http://xiajunhust.github.io/2016/11/12/RocketMQ源码学习之一-MAC系统单机环境搭建/</a></p>
+
+      
+    </div>
+
+
+	<!-- css -->
+	<style type="text/css">
+	    .center {
+	        text-align: center;
+	    }
+	    .hidden {
+	        display: none;
+	    }
+		.donate_bar a.btn_donate{
+			display: inline-block;
+			width: 82px;
+			height: 82px;
+			background: url("http://7xsl28.com1.z0.glb.clouddn.com/btn_reward.gif") no-repeat;
+			_background: url("http://7xsl28.com1.z0.glb.clouddn.com/btn_reward.gif") no-repeat;
+
+			<!-- http://img.t.sinajs.cn/t5/style/images/apps_PRF/e_media/btn_reward.gif
+			     因为本 hexo 生成的博客所用的 theme 的 a:hover 带动画效果，
+				 为了在让打赏按钮显示效果正常 而 添加了以下几行 css，
+				 嵌入其它博客时不一定要它们。 -->
+			-webkit-transition: background 0s;
+			-moz-transition: background 0s;
+			-o-transition: background 0s;
+			-ms-transition: background 0s;
+			transition: background 0s;
+			<!-- /让打赏按钮的效果显示正常 而 添加的几行 css 到此结束 -->
+		}
+
+		.donate_bar a.btn_donate:hover{ background-position: 0px -82px;}
+		.donate_bar .donate_txt {
+			display: block;
+			color: #9d9d9d;
+			font: 14px/2 "Microsoft Yahei";
+		}
+		.bold{ font-weight: bold; }
+	</style>
+	<!-- /css -->
+
+    <!-- Donate Module -->
+    <div id="donate_module">
+
+	<!-- btn_donate & tips -->
+	<div id="donate_board" class="donate_bar center">
+	    <br>
+	    ------------------------------------------------------------------------------------------------------------------------------
+	    <br>
+		<a id="btn_donate" class="btn_donate" target="_self" href="javascript:;" title="Donate 打赏"></a>
+		<span class="donate_txt">
+			打赏我的人，运气都不会太差~
+		</span>
+			
+		
+	</div>
+	<!-- /btn_donate & tips -->
+
+	<!-- donate guide -->
+    
+	<div id="donate_guide" class="donate_bar center hidden">
+        <br>
+	    ------------------------------------------------------------------------------------------------------------------------------
+	    <br>
+	    
+	    <div width="100%" align="center"><div name="dashmain" id="dash-main-id-87895f" class="dash-main-3 87895f-0.99"></div></div>
+		<script type="text/javascript" charset="utf-8" src="http://www.dashangcloud.com/static/ds.js"></script>
+		
+
+		<a href="http://o8sltkx20.bkt.clouddn.com/0004.jpg" title="用微信扫一扫哦~" class="fancybox" rel="article0">
+			<img src="http://o8sltkx20.bkt.clouddn.com/0004.jpg" title="微信打赏 Donate" height="190px" width="auto"/>
+		</a>
+        
+        &nbsp;&nbsp;
+
+		<a href="http://o8sltkx20.bkt.clouddn.com/0002.jpg" title="用支付宝扫一扫即可~" class="fancybox" rel="article0">
+			<img src="http://o8sltkx20.bkt.clouddn.com/0002.jpg" title="支付宝打赏 Donate" height="190px" width="auto"/>
+		</a>
+
+		<span class="donate_txt">
+			打赏我的人，运气都不会太差~
+		</span>
+
+	</div>
+	<!-- /donate guide -->
+
+	<!-- donate script -->
+	<script type="text/javascript">
+		document.getElementById('btn_donate').onclick = function() {
+			$('#donate_board').addClass('hidden');
+	    $('#donate_guide').removeClass('hidden');
+		}
+
+		function donate_on_web(){
+			$('#donate').submit();
+        }
+
+		var original_window_onload = window.onload;
+        window.onload = function () {
+            if (original_window_onload) {
+                original_window_onload();
+            }
+            document.getElementById('donate_board_wdg').className = 'hidden';
+		}
+	</script>
+	<!-- /donate script -->
+</div>
+<!-- /Donate Module -->
+   
+
+    <footer class="article-footer">
+      <a data-url="http://xiajunhust.github.io/2016/11/12/RocketMQ源码学习之一-MAC系统单机环境搭建/" data-id="ciwp0htc50008qiwfqcmj47es" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/RocketMQ/">RocketMQ</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2016/11/12/RocketMQ源码学习之二-同步消息发送/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          RocketMQ源码学习之二-同步消息发送
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2016/08/28/MySQL的日期时间类型关于秒以下精度的处理/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">MySQL的日期时间类型关于秒以下精度的处理</div>
+    </a>
+  
+</nav>
+
+  
+
+
+  <section id="comments">
+   <!-- 多说评论框 start -->
+<div id="ds-thread" class="ds-thread" data-thread-key="2016/11/12/RocketMQ源码学习之一-MAC系统单机环境搭建/" data-title="RocketMQ源码学习之一-MAC单机环境搭建" data-url="http://xiajunhust.github.io/2016/11/12/RocketMQ源码学习之一-MAC系统单机环境搭建/"></div>
+<!-- 多说评论框 end -->
+<!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+<script type="text/javascript">
+var duoshuoQuery = {short_name:"xiajun"};
+	(function() {
+		var ds = document.createElement('script');
+		ds.type = 'text/javascript';ds.async = true;
+		ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+		ds.charset = 'UTF-8';
+		(document.getElementsByTagName('head')[0] 
+		 || document.getElementsByTagName('body')[0]).appendChild(ds);
+	})();
+	</script>
+<!-- 多说公共JS代码 end -->
+  </section>
+  
+
+</article>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/InfluxDB/">InfluxDB</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Java/">Java</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/MySQL/">MySQL</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/RocketMQ/">RocketMQ</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/代码设计/">代码设计</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/开发工具/">开发工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/思考-读书笔记/">思考&读书笔记</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/测试技术/">测试技术</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/InfluxDB/" style="font-size: 10px;">InfluxDB</a> <a href="/tags/Java/" style="font-size: 15px;">Java</a> <a href="/tags/MySQL/" style="font-size: 15px;">MySQL</a> <a href="/tags/RocketMQ/" style="font-size: 20px;">RocketMQ</a> <a href="/tags/代码设计/" style="font-size: 10px;">代码设计</a> <a href="/tags/开发工具/" style="font-size: 15px;">开发工具</a> <a href="/tags/思考-读书笔记/" style="font-size: 10px;">思考&读书笔记</a> <a href="/tags/测试技术/" style="font-size: 10px;">测试技术</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">归档</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">十二月 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/11/">十一月 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">八月 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2016/12/13/InfluxDB写入失败-partial-write-max-values-per-tag-limit-exceeded/">InfluxDB写入失败-partial write: max-values-per-tag limit exceeded</a>
+          </li>
+        
+          <li>
+            <a href="/2016/11/17/RocketMQ源码学习之四-PushConsumer/">RocketMQ源码学习之四-PushConsumer</a>
+          </li>
+        
+          <li>
+            <a href="/2016/11/14/RocketMQ源码学习之三-异步消息发送/">RocketMQ源码学习之三-异步消息发送</a>
+          </li>
+        
+          <li>
+            <a href="/2016/11/12/RocketMQ源码学习之二-同步消息发送/">RocketMQ源码学习之二-同步消息发送</a>
+          </li>
+        
+          <li>
+            <a href="/2016/11/12/RocketMQ源码学习之一-MAC系统单机环境搭建/">RocketMQ源码学习之一-MAC单机环境搭建</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    <iframe width="100%" height="550" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=1&isTitle=1&noborder=1&isWeibo=1&isFans=1&uid=1618991481&verifier=6bf885be&dpc=1"></iframe>
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+   
+    <div id="footer-info" class="inner">
+      &copy; 2016 江南烟雨<br>
+     本站总访问量<span id="busuanzi_value_site_pv"></span>次</br>
+     本站访客数<span id="busuanzi_value_site_uv"></span>人次</br>
+
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://o8sltkx20.bkt.clouddn.com/jquery-2.0.3.min.js"></script>
+
+<script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+  </div>
+</body>
+</html>

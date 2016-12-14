@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <title>RocketMQ源码学习之三-异步消息发送 | 江南烟雨的个人博客</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="本文主要介绍RocketMQ异步消息发送的原理。
+1 异步消息发送Demo首先看一段RocketMQ异步消息发送的Demo代码：消息生产者：  
+123456789101112131415161718192021222324252627282930import com.alibaba.rocketmq.client.exception.MQClientException;import com.al">
+<meta property="og:type" content="article">
+<meta property="og:title" content="RocketMQ源码学习之三-异步消息发送">
+<meta property="og:url" content="http://xiajunhust.github.io/2016/11/14/RocketMQ源码学习之三-异步消息发送/index.html">
+<meta property="og:site_name" content="江南烟雨的个人博客">
+<meta property="og:description" content="本文主要介绍RocketMQ异步消息发送的原理。
+1 异步消息发送Demo首先看一段RocketMQ异步消息发送的Demo代码：消息生产者：  
+123456789101112131415161718192021222324252627282930import com.alibaba.rocketmq.client.exception.MQClientException;import com.al">
+<meta property="og:image" content="http://o8sltkx20.bkt.clouddn.com/rocketmq-sourcecode-3-1.png">
+<meta property="og:updated_time" content="2016-11-16T03:34:48.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="RocketMQ源码学习之三-异步消息发送">
+<meta name="twitter:description" content="本文主要介绍RocketMQ异步消息发送的原理。
+1 异步消息发送Demo首先看一段RocketMQ异步消息发送的Demo代码：消息生产者：  
+123456789101112131415161718192021222324252627282930import com.alibaba.rocketmq.client.exception.MQClientException;import com.al">
+<meta name="twitter:image" content="http://o8sltkx20.bkt.clouddn.com/rocketmq-sourcecode-3-1.png">
+  
+    <link rel="alternate" href="/atom.xml" title="江南烟雨的个人博客" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  <link rel="stylesheet" href="/css/style.css">
+  
+
+</head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">江南烟雨的个人博客</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="搜索"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://xiajunhust.github.io"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-RocketMQ源码学习之三-异步消息发送" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2016/11/14/RocketMQ源码学习之三-异步消息发送/" class="article-date">
+  <time datetime="2016-11-14T14:05:07.000Z" itemprop="datePublished">2016-11-14</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      RocketMQ源码学习之三-异步消息发送
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>本文主要介绍RocketMQ异步消息发送的原理。</p>
+<h1 id="1-异步消息发送Demo"><a href="#1-异步消息发送Demo" class="headerlink" title="1 异步消息发送Demo"></a>1 异步消息发送Demo</h1><p>首先看一段RocketMQ异步消息发送的Demo代码：<br>消息生产者：  </p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div></pre></td><td class="code"><pre><div class="line">import com.alibaba.rocketmq.client.exception.MQClientException;</div><div class="line">import com.alibaba.rocketmq.client.producer.DefaultMQProducer;</div><div class="line">import com.alibaba.rocketmq.common.message.Message;</div><div class="line">import com.SpringTest.rocketmq.callback.MySendCallback;</div><div class="line"></div><div class="line">public class Producer3 &#123;</div><div class="line">  public static void main(String[] args) throws MQClientException, InterruptedException &#123;</div><div class="line">    DefaultMQProducer producer = new DefaultMQProducer(&quot;ProducerGroupName&quot;);</div><div class="line">    producer.setNamesrvAddr(&quot;192.168.2.104:9876&quot;);</div><div class="line">    producer.setInstanceName(&quot;Producer3&quot;);</div><div class="line">    producer.start();</div><div class="line">    for (int i = 0; i &lt; 1; i++)</div><div class="line">      try &#123;</div><div class="line">        &#123;</div><div class="line">          Message msg = new Message(&quot;TopicTest&quot;,// topic</div><div class="line">                                    &quot;TagA&quot;,// tag</div><div class="line">                                    &quot;OrderID188&quot;,// key</div><div class="line">                                    (&quot;Hello MetaQ&quot;).getBytes());// body</div><div class="line"></div><div class="line">          producer.send(msg, new MySendCallback());</div><div class="line">        &#125;</div><div class="line"></div><div class="line">      &#125;</div><div class="line">      catch (Exception e) &#123;</div><div class="line">        e.printStackTrace();</div><div class="line">      &#125;</div><div class="line"></div><div class="line">    producer.shutdown();</div><div class="line">  &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<a id="more"></a>
+<p>回调接口实现：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line">public class  MySendCallback implements SendCallback &#123;</div><div class="line"></div><div class="line">  public void onSuccess(final SendResult sendResult) &#123;</div><div class="line">    System.out.println(&quot;SendCallback-发送消息成功! sendResult=&quot; + sendResult.toString());</div><div class="line">  &#125;</div><div class="line"></div><div class="line"></div><div class="line">  public void onException(final Throwable e) &#123;</div><div class="line">    System.out.println(&quot;SendCallback-发送消息失败! 异常=&quot; + e.toString());</div><div class="line">  &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>消息消费者和前一篇消息同步发送博文中示例相同。运行结果：  </p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">生产者：</div><div class="line">SendCallback-发送消息成功! sendResult=SendResult [sendStatus=SEND_OK, msgId=C0A802684CCA1218025C454271C80000,offsetMsgId=C0A8026800002A9F0000000000001AC9, messageQueue=MessageQueue [topic=TopicTest, brokerName=xiajuns-MacBook-Pro.local, queueId=2], queueOffset=0]</div><div class="line"></div><div class="line">消费者：</div><div class="line">ConsumeMessageThread_2 Receive New Messages: [MessageExt [queueId=2, storeSize=189, queueOffset=0, sysFlag=0, bornTimestamp=1479134782410, bornHost=/192.168.2.104:60966, storeTimestamp=1479134782449, storeHost=/192.168.2.104:10911, msgId=C0A8026800002A9F0000000000001AC9, commitLogOffset=6857, bodyCRC=1751783629, reconsumeTimes=0, preparedTransactionOffset=0, toString()=Message [topic=TopicTest, flag=0, properties=&#123;MIN_OFFSET=0, MAX_OFFSET=1, KEYS=OrderID188, CONSUME_START_TIME=1479134782503, UNIQ_KEY=C0A802684CCA1218025C454271C80000, WAIT=true, TAGS=TagA&#125;, body=11]]]</div></pre></td></tr></table></figure>
+<h1 id="2-异步消息发送原理以及应用场景"><a href="#2-异步消息发送原理以及应用场景" class="headerlink" title="2 异步消息发送原理以及应用场景"></a>2 异步消息发送原理以及应用场景</h1><p>异步消息发送是指消息生产者发送了一条消息之后，不用等待此条消息的发送结果，而继续发送下一条消息。需要使用方自行实现回调接口SendCallback。发送端无需等待服务端响应结果，通过回调接口对服务器的响应进行处理。</p>
+<p><img src="http://o8sltkx20.bkt.clouddn.com/rocketmq-sourcecode-3-1.png" alt="异步消息发送原理示意图"></p>
+<p>使用场景：<br>异步发送一般用于链路耗时较长，对 RT 响应时间较为敏感的业务场景，例如用户视频上传后通知启动转码服务，转码完成后通知推送转码结果等。</p>
+<h1 id="3-异步消息发送源码分析"><a href="#3-异步消息发送源码分析" class="headerlink" title="3 异步消息发送源码分析"></a>3 异步消息发送源码分析</h1><p>异步消息发送的整体发送流程与<a href="http://xiajunhust.github.io/2016/11/12/RocketMQ%E6%BA%90%E7%A0%81%E5%AD%A6%E4%B9%A0%E4%B9%8B%E4%BA%8C-%E5%90%8C%E6%AD%A5%E6%B6%88%E6%81%AF%E5%8F%91%E9%80%81/">RocketMQ同步消息发送</a>流程相同。不同之处在于，DefaultMQProducer.send(Message msg)调到DefaultMQProducerImpl的这个方法传递的CommunicationMode参数是ASYNC。最后会调到底层的Netty通信逻辑NettyRemotingClient:   </p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div></pre></td><td class="code"><pre><div class="line">public void invokeAsyncImpl(final Channel channel, final RemotingCommand request, final long timeoutMillis,</div><div class="line">                            final InvokeCallback invokeCallback)</div><div class="line">        throws InterruptedException, RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException &#123;</div><div class="line">    final int opaque = request.getOpaque();</div><div class="line">    boolean acquired = this.semaphoreAsync.tryAcquire(timeoutMillis, TimeUnit.MILLISECONDS);</div><div class="line">    if (acquired) &#123;</div><div class="line">        final SemaphoreReleaseOnlyOnce once = new SemaphoreReleaseOnlyOnce(this.semaphoreAsync);</div><div class="line"></div><div class="line">        final ResponseFuture responseFuture = new ResponseFuture(opaque, timeoutMillis, invokeCallback, once);</div><div class="line">        this.responseTable.put(opaque, responseFuture);</div><div class="line">        try &#123;</div><div class="line">            channel.writeAndFlush(request).addListener(new ChannelFutureListener() &#123;</div><div class="line">                @Override</div><div class="line">                public void operationComplete(ChannelFuture f) throws Exception &#123;</div><div class="line">                    if (f.isSuccess()) &#123;</div><div class="line">                        responseFuture.setSendRequestOK(true);</div><div class="line">                        return;</div><div class="line">                    &#125; else &#123;</div><div class="line">                        responseFuture.setSendRequestOK(false);</div><div class="line">                    &#125;</div><div class="line"></div><div class="line">                    responseFuture.putResponse(null);</div><div class="line">                    responseTable.remove(opaque);</div><div class="line">                    try &#123;</div><div class="line">                    	 //执行回调接口</div><div class="line">                        responseFuture.executeInvokeCallback();</div><div class="line">                    &#125; catch (Throwable e) &#123;</div><div class="line">                        plog.warn(&quot;excute callback in writeAndFlush addListener, and callback throw&quot;, e);</div><div class="line">                    &#125; finally &#123;</div><div class="line">                        responseFuture.release();</div><div class="line">                    &#125;</div><div class="line"></div><div class="line">                    plog.warn(&quot;send a request command to channel &lt;&#123;&#125;&gt; failed.&quot;, RemotingHelper.parseChannelRemoteAddr(channel));</div><div class="line">                &#125;</div><div class="line">            &#125;);</div><div class="line">        &#125; catch (Exception e) &#123;</div><div class="line">            responseFuture.release();</div><div class="line">            plog.warn(&quot;send a request command to channel &lt;&quot; + RemotingHelper.parseChannelRemoteAddr(channel) + &quot;&gt; Exception&quot;, e);</div><div class="line">            throw new RemotingSendRequestException(RemotingHelper.parseChannelRemoteAddr(channel), e);</div><div class="line">        &#125;</div><div class="line">    &#125; else &#123;</div><div class="line">        String info =</div><div class="line">                String.format(&quot;invokeAsyncImpl tryAcquire semaphore timeout, %dms, waiting thread nums: %d semaphoreAsyncValue: %d&quot;, //</div><div class="line">                        timeoutMillis, //</div><div class="line">                        this.semaphoreAsync.getQueueLength(), //</div><div class="line">                        this.semaphoreAsync.availablePermits()//</div><div class="line">                );</div><div class="line">        plog.warn(info);</div><div class="line">        throw new RemotingTooMuchRequestException(info);</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>这里同样是注册了监听器ChannelFutureListener，在监听器中设置消息发送结果，与同步发送不同的是会执行用户自己实现的回调接口，完成消息发送后的处理逻辑.<br>并且没有同步发送消息的awaiting逻辑，整个发送消息发送立即返回。</p>
+<h1 id="4-参考资料"><a href="#4-参考资料" class="headerlink" title="4 参考资料"></a>4 参考资料</h1><ul>
+<li><a href="http://jm.taobao.org/2016/07/21/3-ways-to-send-message/" target="_blank" rel="external">消息队列三种发送方式</a></li>
+</ul>
+<h2 id="版权声明"><a href="#版权声明" class="headerlink" title="版权声明"></a>版权声明</h2><p>本文首发于<a href="http://xiajunhust.github.io/">江南烟雨的个人博客</a>博客（ <a href="http://xiajunhust.github.io/">http://xiajunhust.github.io/</a> ），版权所有，侵权必究。<br>本文永久链接：<a href="http://xiajunhust.github.io/2016/11/14/RocketMQ源码学习之三-异步消息发送/">http://xiajunhust.github.io/2016/11/14/RocketMQ源码学习之三-异步消息发送/</a></p>
+
+      
+    </div>
+
+
+	<!-- css -->
+	<style type="text/css">
+	    .center {
+	        text-align: center;
+	    }
+	    .hidden {
+	        display: none;
+	    }
+		.donate_bar a.btn_donate{
+			display: inline-block;
+			width: 82px;
+			height: 82px;
+			background: url("http://7xsl28.com1.z0.glb.clouddn.com/btn_reward.gif") no-repeat;
+			_background: url("http://7xsl28.com1.z0.glb.clouddn.com/btn_reward.gif") no-repeat;
+
+			<!-- http://img.t.sinajs.cn/t5/style/images/apps_PRF/e_media/btn_reward.gif
+			     因为本 hexo 生成的博客所用的 theme 的 a:hover 带动画效果，
+				 为了在让打赏按钮显示效果正常 而 添加了以下几行 css，
+				 嵌入其它博客时不一定要它们。 -->
+			-webkit-transition: background 0s;
+			-moz-transition: background 0s;
+			-o-transition: background 0s;
+			-ms-transition: background 0s;
+			transition: background 0s;
+			<!-- /让打赏按钮的效果显示正常 而 添加的几行 css 到此结束 -->
+		}
+
+		.donate_bar a.btn_donate:hover{ background-position: 0px -82px;}
+		.donate_bar .donate_txt {
+			display: block;
+			color: #9d9d9d;
+			font: 14px/2 "Microsoft Yahei";
+		}
+		.bold{ font-weight: bold; }
+	</style>
+	<!-- /css -->
+
+    <!-- Donate Module -->
+    <div id="donate_module">
+
+	<!-- btn_donate & tips -->
+	<div id="donate_board" class="donate_bar center">
+	    <br>
+	    ------------------------------------------------------------------------------------------------------------------------------
+	    <br>
+		<a id="btn_donate" class="btn_donate" target="_self" href="javascript:;" title="Donate 打赏"></a>
+		<span class="donate_txt">
+			打赏我的人，运气都不会太差~
+		</span>
+			
+		
+	</div>
+	<!-- /btn_donate & tips -->
+
+	<!-- donate guide -->
+    
+	<div id="donate_guide" class="donate_bar center hidden">
+        <br>
+	    ------------------------------------------------------------------------------------------------------------------------------
+	    <br>
+	    
+	    <div width="100%" align="center"><div name="dashmain" id="dash-main-id-87895f" class="dash-main-3 87895f-0.99"></div></div>
+		<script type="text/javascript" charset="utf-8" src="http://www.dashangcloud.com/static/ds.js"></script>
+		
+
+		<a href="http://o8sltkx20.bkt.clouddn.com/0004.jpg" title="用微信扫一扫哦~" class="fancybox" rel="article0">
+			<img src="http://o8sltkx20.bkt.clouddn.com/0004.jpg" title="微信打赏 Donate" height="190px" width="auto"/>
+		</a>
+        
+        &nbsp;&nbsp;
+
+		<a href="http://o8sltkx20.bkt.clouddn.com/0002.jpg" title="用支付宝扫一扫即可~" class="fancybox" rel="article0">
+			<img src="http://o8sltkx20.bkt.clouddn.com/0002.jpg" title="支付宝打赏 Donate" height="190px" width="auto"/>
+		</a>
+
+		<span class="donate_txt">
+			打赏我的人，运气都不会太差~
+		</span>
+
+	</div>
+	<!-- /donate guide -->
+
+	<!-- donate script -->
+	<script type="text/javascript">
+		document.getElementById('btn_donate').onclick = function() {
+			$('#donate_board').addClass('hidden');
+	    $('#donate_guide').removeClass('hidden');
+		}
+
+		function donate_on_web(){
+			$('#donate').submit();
+        }
+
+		var original_window_onload = window.onload;
+        window.onload = function () {
+            if (original_window_onload) {
+                original_window_onload();
+            }
+            document.getElementById('donate_board_wdg').className = 'hidden';
+		}
+	</script>
+	<!-- /donate script -->
+</div>
+<!-- /Donate Module -->
+   
+
+    <footer class="article-footer">
+      <a data-url="http://xiajunhust.github.io/2016/11/14/RocketMQ源码学习之三-异步消息发送/" data-id="ciwp0htc7000aqiwftebg6yh3" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/RocketMQ/">RocketMQ</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2016/11/17/RocketMQ源码学习之四-PushConsumer/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          RocketMQ源码学习之四-PushConsumer
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2016/11/12/RocketMQ源码学习之二-同步消息发送/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">RocketMQ源码学习之二-同步消息发送</div>
+    </a>
+  
+</nav>
+
+  
+
+
+  <section id="comments">
+   <!-- 多说评论框 start -->
+<div id="ds-thread" class="ds-thread" data-thread-key="2016/11/14/RocketMQ源码学习之三-异步消息发送/" data-title="RocketMQ源码学习之三-异步消息发送" data-url="http://xiajunhust.github.io/2016/11/14/RocketMQ源码学习之三-异步消息发送/"></div>
+<!-- 多说评论框 end -->
+<!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+<script type="text/javascript">
+var duoshuoQuery = {short_name:"xiajun"};
+	(function() {
+		var ds = document.createElement('script');
+		ds.type = 'text/javascript';ds.async = true;
+		ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+		ds.charset = 'UTF-8';
+		(document.getElementsByTagName('head')[0] 
+		 || document.getElementsByTagName('body')[0]).appendChild(ds);
+	})();
+	</script>
+<!-- 多说公共JS代码 end -->
+  </section>
+  
+
+</article>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/InfluxDB/">InfluxDB</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Java/">Java</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/MySQL/">MySQL</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/RocketMQ/">RocketMQ</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/代码设计/">代码设计</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/开发工具/">开发工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/思考-读书笔记/">思考&读书笔记</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/测试技术/">测试技术</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/InfluxDB/" style="font-size: 10px;">InfluxDB</a> <a href="/tags/Java/" style="font-size: 15px;">Java</a> <a href="/tags/MySQL/" style="font-size: 15px;">MySQL</a> <a href="/tags/RocketMQ/" style="font-size: 20px;">RocketMQ</a> <a href="/tags/代码设计/" style="font-size: 10px;">代码设计</a> <a href="/tags/开发工具/" style="font-size: 15px;">开发工具</a> <a href="/tags/思考-读书笔记/" style="font-size: 10px;">思考&读书笔记</a> <a href="/tags/测试技术/" style="font-size: 10px;">测试技术</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">归档</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">十二月 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/11/">十一月 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">八月 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2016/12/13/InfluxDB写入失败-partial-write-max-values-per-tag-limit-exceeded/">InfluxDB写入失败-partial write: max-values-per-tag limit exceeded</a>
+          </li>
+        
+          <li>
+            <a href="/2016/11/17/RocketMQ源码学习之四-PushConsumer/">RocketMQ源码学习之四-PushConsumer</a>
+          </li>
+        
+          <li>
+            <a href="/2016/11/14/RocketMQ源码学习之三-异步消息发送/">RocketMQ源码学习之三-异步消息发送</a>
+          </li>
+        
+          <li>
+            <a href="/2016/11/12/RocketMQ源码学习之二-同步消息发送/">RocketMQ源码学习之二-同步消息发送</a>
+          </li>
+        
+          <li>
+            <a href="/2016/11/12/RocketMQ源码学习之一-MAC系统单机环境搭建/">RocketMQ源码学习之一-MAC单机环境搭建</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    <iframe width="100%" height="550" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=1&isTitle=1&noborder=1&isWeibo=1&isFans=1&uid=1618991481&verifier=6bf885be&dpc=1"></iframe>
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+   
+    <div id="footer-info" class="inner">
+      &copy; 2016 江南烟雨<br>
+     本站总访问量<span id="busuanzi_value_site_pv"></span>次</br>
+     本站访客数<span id="busuanzi_value_site_uv"></span>人次</br>
+
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://o8sltkx20.bkt.clouddn.com/jquery-2.0.3.min.js"></script>
+
+<script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+  </div>
+</body>
+</html>
