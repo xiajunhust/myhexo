@@ -159,4 +159,4 @@ doOnUnsubscribe-当没有订阅者的时候，执行对应的操作。
 
 # 3 参考资料  
 - [ReactiveX官方网站](http://reactivex.io/)
-- [RxJava](https://github.com/ReactiveX/RxJava)  
+- [RxJava](https://github.com/ReactiveX/RxJava)
