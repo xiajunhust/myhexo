@@ -63,10 +63,10 @@
       <div class="outer">
         <section id="main">
   
-    <article id="post-InfluxDB写入失败-partial-write-max-values-per-tag-limit-exceeded" class="article article-type-post" itemscope itemprop="blogPost">
+    <article id="post-从Hystrix-DashboardData看ReativeX的使用" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
-    <a href="/2016/12/13/InfluxDB写入失败-partial-write-max-values-per-tag-limit-exceeded/" class="article-date">
-  <time datetime="2016-12-13T03:05:46.000Z" itemprop="datePublished">2016-12-13</time>
+    <a href="/2016/12/18/从Hystrix-DashboardData看ReativeX的使用/" class="article-date">
+  <time datetime="2016-12-18T06:23:43.000Z" itemprop="datePublished">2016-12-18</time>
 </a>
     
   </div>
@@ -77,7 +77,7 @@
         
   
     <h1 itemprop="name">
-      <a class="article-title" href="/2016/12/13/InfluxDB写入失败-partial-write-max-values-per-tag-limit-exceeded/">InfluxDB写入失败-partial write: max-values-per-tag limit exceeded</a>
+      <a class="article-title" href="/2016/12/18/从Hystrix-DashboardData看ReativeX的使用/">从Hystrix DashboardData看ReativeX的使用</a>
     </h1>
   
 
@@ -85,31 +85,15 @@
     
     <div class="article-entry" itemprop="articleBody">
       
-        <p>最近线上向InfluxDB写入数据突然报错，大概意思是tag的值超限，详细错误信息：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line">2016-12-02 20:47:11.485 [] [] [] ERROR c.y.t.p.m.m.i.OrderCreateMonitorManageImpl - InfluxDB写入异常!influxDO=InfluxDO(measurement=com.XXX.trade.create.request.result, timeStamp=1480682831481, tagKeyList=[cluster, host, count_time, count, count_type], tagValList=[DEFAULT_CLUSTER, xxx-inc.com, 1480682831481, 3, bill_new], fieldKeyList=[result, cost], fieldValList=[true, 112]), exception=&#123;&#125;</div><div class="line">java.lang.RuntimeException: &#123;&quot;error&quot;:&quot;partial write: max-values-per-tag limit exceeded (100000/100000): measurement=\&quot;com.XXX.trade.create.request.result\&quot; tag=\&quot;count_time\&quot; value=\&quot;count_time\&quot; dropped=1&quot;&#125;</div><div class="line"></div><div class="line">    at org.influxdb.impl.InfluxDBImpl.execute(InfluxDBImpl.java:266) ~[influxdb-java-2.4.jar:na]</div><div class="line">    at org.influxdb.impl.InfluxDBImpl.write(InfluxDBImpl.java:167) ~[influxdb-java-2.4.jar:na]</div><div class="line">    at org.influxdb.impl.InfluxDBImpl.write(InfluxDBImpl.java:157) ~[influxdb-java-2.4.jar:na]</div><div class="line">    at com.XXX.trade.process.monitor.dal.impl.InfluxDBDAOImpl.insert(InfluxDBDAOImpl.java:104) ~[trade-process-service-1.0.0-SNAPSHOT.jar:na]</div><div class="line">    at com.XXX.trade.process.monitor.manage.impl.OrderCreateMonitorManageImpl.save(OrderCreateMonitorManageImpl.java:40) ~[trade-process-service-1.0.0-SNAPSHOT.jar:na]</div><div class="line">    at com.XXX.trade.process.nsq.processor.impl.MonitorProcessor.process(MonitorProcessor.java:69) [trade-process-service-1.0.0-SNAPSHOT.jar:na]</div><div class="line">    at com.XXX.trade.process.nsq.NSQSubscriber.lambda$init$0(NSQSubscriber.java:71) [trade-process-service-1.0.0-SNAPSHOT.jar:na]</div><div class="line">    at com.XXX.trade.process.nsq.NSQSubscriber$$Lambda$8/1829287142.process(Unknown Source) [trade-process-service-1.0.0-SNAPSHOT.jar:na]</div></pre></td></tr></table></figure>
-<p>Google搜索了下，这是InfluxDB v1.1.0 [2016-11-14]版本新加的一个特性(<a href="https://github.com/influxdata/influxdb/blob/master/CHANGELOG.md" target="_blank" rel="external">CHANGELOG.md</a>)：</p>
-<i><br>max-values-per-tag was added with a default of 100,000, but can be disabled by setting it to 0. Existing measurements with tags that exceed this limit will continue to load, but writes that would cause the tags cardinality to increase will be dropped and a partial write error will be returned to the caller. This limit can be used to prevent high cardinality tag values from being written to a measurement.<br></i>
-
-<p>增加了对tag的值的大小的校验，最大值是10000.若写入的数据的tag的值超限，则调用方会收到报错。用来防止写入到measurement的数据的series-cardinality(<a href="https://docs.influxdata.com/influxdb/v1.1/concepts/glossary/#series-cardinality" target="_blank" rel="external">series-cardinality</a>)过大。</p>
-<i><br>关于series cardinality：<br>The number of unique database, measurement, and tag set combinations in an InfluxDB instance.<br></i>
-
-<p><b>这样做的用意是什么呢？</b><br><a href="https://github.com/influxdata/influxdb/issues/7146" target="_blank" rel="external">issue-7146：Add option max-tags-per-database to limit high cardinality data</a>  </p>
-<i><br>Much as max-series-per-database in <a href="https://github.com/influxdata/influxdb/pull/7095" target="_blank" rel="external">#7095</a>, add a max-tags-per-database to limit high cardinality data.<br><br>Writes beyond that should be dropped and logged with a rate limit on the log (one summary log per minute or something saying x writes dropped).<br><br>This is important because if you accidentally load in a huge amount of high cardinality data, you can easily get into a place that InfluxDB will OOM if you attempt to delete the data, so your only choice is to try to move the files on disk out the way which deletes other data.<br><br>—<br><br>Configuration setting for managing series cardinality<br><br>Limiting your series cardinality is an essential part of working with InfluxDB. The new max-values-per-tag configuration setting can help you do just that.<br><br>The setting limits the number of tag values allowed per tag key. The default setting is 10,000 (so 10,000 tag values allowed per tag key). If a write causes the number of tag values for a tag key to exceed 10,000, InfluxDB will not write the point and it returns a partial write error.<br></i>
-
-<p>如果我们写入了大量的series-cardinality很高的数据，那么当我们删除数据的时候，InfluxDB会OOM。</p>
-<p><b>为什么我们需要关注series cardility？</b><br>原因是InfluxDB在内存中维护了系统中每个series数据的索引。随着具有唯一性的series数据数量的增长，RAM的使用也会增长。过高的series cardinality会导致操作系统kill掉InfluxDB进程，抛出OOM异常。  </p>
-<i><br>InfluxDB maintains an in-memory index of every series in the system. As the number of unique series grows, so does the RAM usage. High series cardinality can lead to the operating system killing the InfluxDB process with an out of memory (OOM) exception. See Querying for series cardinality to learn how to query for series cardinality.<br></i>
-
-
-
-<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><ul>
-<li><a href="https://github.com/influxdata/influxdb/issues/7146" target="_blank" rel="external">https://github.com/influxdata/influxdb/issues/7146</a></li>
-<li><a href="https://github.com/influxdata/influxdb/blob/master/CHANGELOG.md" target="_blank" rel="external">https://github.com/influxdata/influxdb/blob/master/CHANGELOG.md</a></li>
-<li><a href="https://www.influxdata.com/tldr-influxdb-tech-tips-november-15-2016/" target="_blank" rel="external">https://www.influxdata.com/tldr-influxdb-tech-tips-november-15-2016/</a></li>
-<li><a href="https://docs.influxdata.com/influxdb/v1.1/troubleshooting/frequently-asked-questions/#how-can-i-query-for-series-cardinality" target="_blank" rel="external">FAQ-how-can-i-query-for-series-cardinality</a><h2 id="版权声明"><a href="#版权声明" class="headerlink" title="版权声明"></a>版权声明</h2></li>
-</ul>
-<p>本文首发于<a href="http://xiajunhust.github.io/">江南烟雨的个人博客</a>博客（ <a href="http://xiajunhust.github.io/">http://xiajunhust.github.io/</a> ），版权所有，侵权必究。<br>本文永久链接：<a href="http://xiajunhust.github.io/2016/12/13/InfluxDB写入失败-partial-write-max-values-per-tag-limit-exceeded/">http://xiajunhust.github.io/2016/12/13/InfluxDB写入失败-partial-write-max-values-per-tag-limit-exceeded/</a></p>
-
+        <p>最近在将系统中服务降级框架<a href="https://github.com/Netflix/Hystrix">Hystrix</a>的运行时的一些指标数据接入到监控平台，需要获取Hystrix的Dashboard数据。发现用到了<a href="http://reactivex.io/">ReactiveX</a>的知识，因此总结下。</p>
+<h2 id="1-如何获取Hystrix的Dashboard数据"><a href="#1-如何获取Hystrix的Dashboard数据" class="headerlink" title="1 如何获取Hystrix的Dashboard数据"></a>1 如何获取Hystrix的Dashboard数据</h2><p>获取Hystrix的Dashboard数据比较简单，实现一个观察者即可接收Dashboard数据，如下代码：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">Observable&lt;HystrixDashboardStream.DashboardData&gt; </div><div class="line">       dashboardDataObservable = HystrixDashboardStream.getInstance().observe();</div><div class="line">   </div><div class="line">dashboardDataObservable.subscribe(new Action1&lt;HystrixDashboardStream.DashboardData&gt;() &#123;</div><div class="line">	@Override</div><div class="line">	public void call(HystrixDashboardStream.DashboardData dashboardData) &#123;</div><div class="line">	</div><div class="line">	//do something</div><div class="line">	&#125;</div><div class="line">&#125;);</div></pre></td></tr></table></figure>
+<h2 id="2-HystrixDashboard设计"><a href="#2-HystrixDashboard设计" class="headerlink" title="2 HystrixDashboard设计"></a>2 HystrixDashboard设计</h2>
+        
+          <p class="article-more-link">
+            <a href="/2016/12/18/从Hystrix-DashboardData看ReativeX的使用/#more">Read More</a>
+          </p>
+        
       
     </div>
 
@@ -221,7 +205,162 @@
    
 
     <footer class="article-footer">
-      <a data-url="http://xiajunhust.github.io/2016/12/13/InfluxDB写入失败-partial-write-max-values-per-tag-limit-exceeded/" data-id="ciwp0htbx0003qiwfuz1lf4dy" class="article-share-link">Share</a>
+      <a data-url="http://xiajunhust.github.io/2016/12/18/从Hystrix-DashboardData看ReativeX的使用/" data-id="ciwub3m43000i7bwf67riutr7" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Hystrix/">Hystrix</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/ReactiveX/">ReactiveX</a></li></ul>
+
+    </footer>
+  </div>
+  
+
+
+
+</article>
+
+  
+    <article id="post-InfluxDB写入失败-partial-write-max-values-per-tag-limit-exceeded" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2016/12/13/InfluxDB写入失败-partial-write-max-values-per-tag-limit-exceeded/" class="article-date">
+  <time datetime="2016-12-13T03:05:46.000Z" itemprop="datePublished">2016-12-13</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2016/12/13/InfluxDB写入失败-partial-write-max-values-per-tag-limit-exceeded/">InfluxDB写入失败-partial write: max-values-per-tag limit exceeded</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>最近线上向InfluxDB写入数据突然报错，大概意思是tag的值超限，详细错误信息：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line">2016-12-02 20:47:11.485 [] [] [] ERROR c.y.t.p.m.m.i.OrderCreateMonitorManageImpl - InfluxDB写入异常!influxDO=InfluxDO(measurement=com.XXX.trade.create.request.result, timeStamp=1480682831481, tagKeyList=[cluster, host, count_time, count, count_type], tagValList=[DEFAULT_CLUSTER, xxx-inc.com, 1480682831481, 3, bill_new], fieldKeyList=[result, cost], fieldValList=[true, 112]), exception=&#123;&#125;</div><div class="line">java.lang.RuntimeException: &#123;&quot;error&quot;:&quot;partial write: max-values-per-tag limit exceeded (100000/100000): measurement=\&quot;com.XXX.trade.create.request.result\&quot; tag=\&quot;count_time\&quot; value=\&quot;count_time\&quot; dropped=1&quot;&#125;</div><div class="line"></div><div class="line">    at org.influxdb.impl.InfluxDBImpl.execute(InfluxDBImpl.java:266) ~[influxdb-java-2.4.jar:na]</div><div class="line">    at org.influxdb.impl.InfluxDBImpl.write(InfluxDBImpl.java:167) ~[influxdb-java-2.4.jar:na]</div><div class="line">    at org.influxdb.impl.InfluxDBImpl.write(InfluxDBImpl.java:157) ~[influxdb-java-2.4.jar:na]</div><div class="line">    at com.XXX.trade.process.monitor.dal.impl.InfluxDBDAOImpl.insert(InfluxDBDAOImpl.java:104) ~[trade-process-service-1.0.0-SNAPSHOT.jar:na]</div><div class="line">    at com.XXX.trade.process.monitor.manage.impl.OrderCreateMonitorManageImpl.save(OrderCreateMonitorManageImpl.java:40) ~[trade-process-service-1.0.0-SNAPSHOT.jar:na]</div><div class="line">    at com.XXX.trade.process.nsq.processor.impl.MonitorProcessor.process(MonitorProcessor.java:69) [trade-process-service-1.0.0-SNAPSHOT.jar:na]</div><div class="line">    at com.XXX.trade.process.nsq.NSQSubscriber.lambda$init$0(NSQSubscriber.java:71) [trade-process-service-1.0.0-SNAPSHOT.jar:na]</div><div class="line">    at com.XXX.trade.process.nsq.NSQSubscriber$$Lambda$8/1829287142.process(Unknown Source) [trade-process-service-1.0.0-SNAPSHOT.jar:na]</div></pre></td></tr></table></figure>
+<p>Google搜索了下，这是InfluxDB v1.1.0 [2016-11-14]版本新加的一个特性(<a href="https://github.com/influxdata/influxdb/blob/master/CHANGELOG.md">CHANGELOG.md</a>)：</p>
+        
+          <p class="article-more-link">
+            <a href="/2016/12/13/InfluxDB写入失败-partial-write-max-values-per-tag-limit-exceeded/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+
+
+	<!-- css -->
+	<style type="text/css">
+	    .center {
+	        text-align: center;
+	    }
+	    .hidden {
+	        display: none;
+	    }
+		.donate_bar a.btn_donate{
+			display: inline-block;
+			width: 82px;
+			height: 82px;
+			background: url("http://7xsl28.com1.z0.glb.clouddn.com/btn_reward.gif") no-repeat;
+			_background: url("http://7xsl28.com1.z0.glb.clouddn.com/btn_reward.gif") no-repeat;
+
+			<!-- http://img.t.sinajs.cn/t5/style/images/apps_PRF/e_media/btn_reward.gif
+			     因为本 hexo 生成的博客所用的 theme 的 a:hover 带动画效果，
+				 为了在让打赏按钮显示效果正常 而 添加了以下几行 css，
+				 嵌入其它博客时不一定要它们。 -->
+			-webkit-transition: background 0s;
+			-moz-transition: background 0s;
+			-o-transition: background 0s;
+			-ms-transition: background 0s;
+			transition: background 0s;
+			<!-- /让打赏按钮的效果显示正常 而 添加的几行 css 到此结束 -->
+		}
+
+		.donate_bar a.btn_donate:hover{ background-position: 0px -82px;}
+		.donate_bar .donate_txt {
+			display: block;
+			color: #9d9d9d;
+			font: 14px/2 "Microsoft Yahei";
+		}
+		.bold{ font-weight: bold; }
+	</style>
+	<!-- /css -->
+
+    <!-- Donate Module -->
+    <div id="donate_module">
+
+	<!-- btn_donate & tips -->
+	<div id="donate_board" class="donate_bar center">
+	    <br>
+	    ------------------------------------------------------------------------------------------------------------------------------
+	    <br>
+		<a id="btn_donate" class="btn_donate" target="_self" href="javascript:;" title="Donate 打赏"></a>
+		<span class="donate_txt">
+			打赏我的人，运气都不会太差~
+		</span>
+			
+		
+	</div>
+	<!-- /btn_donate & tips -->
+
+	<!-- donate guide -->
+    
+	<div id="donate_guide" class="donate_bar center hidden">
+        <br>
+	    ------------------------------------------------------------------------------------------------------------------------------
+	    <br>
+	    
+	    <div width="100%" align="center"><div name="dashmain" id="dash-main-id-87895f" class="dash-main-3 87895f-0.99"></div></div>
+		<script type="text/javascript" charset="utf-8" src="http://www.dashangcloud.com/static/ds.js"></script>
+		
+
+		<a href="http://o8sltkx20.bkt.clouddn.com/0004.jpg" title="用微信扫一扫哦~" class="fancybox" rel="article0">
+			<img src="http://o8sltkx20.bkt.clouddn.com/0004.jpg" title="微信打赏 Donate" height="190px" width="auto"/>
+		</a>
+        
+        &nbsp;&nbsp;
+
+		<a href="http://o8sltkx20.bkt.clouddn.com/0002.jpg" title="用支付宝扫一扫即可~" class="fancybox" rel="article0">
+			<img src="http://o8sltkx20.bkt.clouddn.com/0002.jpg" title="支付宝打赏 Donate" height="190px" width="auto"/>
+		</a>
+
+		<span class="donate_txt">
+			打赏我的人，运气都不会太差~
+		</span>
+
+	</div>
+	<!-- /donate guide -->
+
+	<!-- donate script -->
+	<script type="text/javascript">
+		document.getElementById('btn_donate').onclick = function() {
+			$('#donate_board').addClass('hidden');
+	    $('#donate_guide').removeClass('hidden');
+		}
+
+		function donate_on_web(){
+			$('#donate').submit();
+        }
+
+		var original_window_onload = window.onload;
+        window.onload = function () {
+            if (original_window_onload) {
+                original_window_onload();
+            }
+            document.getElementById('donate_board_wdg').className = 'hidden';
+		}
+	</script>
+	<!-- /donate script -->
+</div>
+<!-- /Donate Module -->
+   
+
+    <footer class="article-footer">
+      <a data-url="http://xiajunhust.github.io/2016/12/13/InfluxDB写入失败-partial-write-max-values-per-tag-limit-exceeded/" data-id="ciwub3m3x000d7bwfvwhfslur" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/InfluxDB/">InfluxDB</a></li></ul>
@@ -380,7 +519,7 @@
    
 
     <footer class="article-footer">
-      <a data-url="http://xiajunhust.github.io/2016/11/17/RocketMQ源码学习之四-PushConsumer/" data-id="ciwp0htct000gqiwfvfdu1i5n" class="article-share-link">Share</a>
+      <a data-url="http://xiajunhust.github.io/2016/11/17/RocketMQ源码学习之四-PushConsumer/" data-id="ciwub3m42000g7bwfc4krc3k8" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/RocketMQ/">RocketMQ</a></li></ul>
@@ -535,7 +674,7 @@
    
 
     <footer class="article-footer">
-      <a data-url="http://xiajunhust.github.io/2016/11/14/RocketMQ源码学习之三-异步消息发送/" data-id="ciwp0htc7000aqiwftebg6yh3" class="article-share-link">Share</a>
+      <a data-url="http://xiajunhust.github.io/2016/11/14/RocketMQ源码学习之三-异步消息发送/" data-id="ciwub3m3q00077bwf1akcqyfq" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/RocketMQ/">RocketMQ</a></li></ul>
@@ -690,7 +829,7 @@
    
 
     <footer class="article-footer">
-      <a data-url="http://xiajunhust.github.io/2016/11/12/RocketMQ源码学习之二-同步消息发送/" data-id="ciwp0htcr000eqiwfw4gmx84w" class="article-share-link">Share</a>
+      <a data-url="http://xiajunhust.github.io/2016/11/12/RocketMQ源码学习之二-同步消息发送/" data-id="ciwub3m48000n7bwfcz4oqeqz" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/RocketMQ/">RocketMQ</a></li></ul>
@@ -845,7 +984,7 @@
    
 
     <footer class="article-footer">
-      <a data-url="http://xiajunhust.github.io/2016/11/12/RocketMQ源码学习之一-MAC系统单机环境搭建/" data-id="ciwp0htc50008qiwfqcmj47es" class="article-share-link">Share</a>
+      <a data-url="http://xiajunhust.github.io/2016/11/12/RocketMQ源码学习之一-MAC系统单机环境搭建/" data-id="ciwub3m3s00097bwf160c2rpo" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/RocketMQ/">RocketMQ</a></li></ul>
@@ -999,7 +1138,7 @@
    
 
     <footer class="article-footer">
-      <a data-url="http://xiajunhust.github.io/2016/08/28/MySQL的日期时间类型关于秒以下精度的处理/" data-id="ciwp0htcb000dqiwf6juk5x00" class="article-share-link">Share</a>
+      <a data-url="http://xiajunhust.github.io/2016/08/28/MySQL的日期时间类型关于秒以下精度的处理/" data-id="ciwub3m3v000a7bwfmhmcxaxs" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/MySQL/">MySQL</a></li></ul>
@@ -1153,7 +1292,7 @@
    
 
     <footer class="article-footer">
-      <a data-url="http://xiajunhust.github.io/2016/08/27/技术分享-MySQL-InnoDB-locks-and-deadlocks/" data-id="ciwp0htd3000pqiwf1mrlqr3c" class="article-share-link">Share</a>
+      <a data-url="http://xiajunhust.github.io/2016/08/27/技术分享-MySQL-InnoDB-locks-and-deadlocks/" data-id="ciwub3m4b000p7bwfvi38noi3" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/MySQL/">MySQL</a></li></ul>
@@ -1307,7 +1446,7 @@
    
 
     <footer class="article-footer">
-      <a data-url="http://xiajunhust.github.io/2016/08/06/为什么Java-HashMap、CopyOnWriteArrayList等集合自己实现readObject和writeObject方法/" data-id="ciwp0htcz000kqiwfujnlm7vy" class="article-share-link">Share</a>
+      <a data-url="http://xiajunhust.github.io/2016/08/06/为什么Java-HashMap、CopyOnWriteArrayList等集合自己实现readObject和writeObject方法/" data-id="ciwub3m3z000e7bwfynkb2dov" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Java/">Java</a></li></ul>
@@ -1466,164 +1605,10 @@
    
 
     <footer class="article-footer">
-      <a data-url="http://xiajunhust.github.io/2016/08/06/CopyOnWriteArrayList与JMM/" data-id="ciwp0htbr0001qiwf8cqd32ub" class="article-share-link">Share</a>
+      <a data-url="http://xiajunhust.github.io/2016/08/06/CopyOnWriteArrayList与JMM/" data-id="ciwub3m2s00007bwfvgvjmixx" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Java/">Java</a></li></ul>
-
-    </footer>
-  </div>
-  
-
-
-
-</article>
-
-  
-    <article id="post-代码中的命名问题-命名太长了！" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/2016/07/20/代码中的命名问题-命名太长了！/" class="article-date">
-  <time datetime="2016-07-20T13:05:10.000Z" itemprop="datePublished">2016-07-20</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2016/07/20/代码中的命名问题-命名太长了！/">代码中的命名问题-命名太长了！</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="1-内容概要"><a href="#1-内容概要" class="headerlink" title="1 内容概要"></a>1 内容概要</h1><p>本文是一篇译文，翻译自：<a href="http://journal.stuffwithstuff.com/2016/06/16/long-names-are-long/?from=timeline&amp;isappinstalled=0">Long Names Are Long</a>。主要介绍了编程过程中常见的命名过长的问题。</p>
-<h1 id="2-正文内容"><a href="#2-正文内容" class="headerlink" title="2 正文内容"></a>2 正文内容</h1><h2 id="2-1-选择一个好名字"><a href="#2-1-选择一个好名字" class="headerlink" title="2.1 选择一个好名字"></a>2.1 选择一个好名字</h2><p>一个好名字需要具备以下两个特点：</p>
-        
-          <p class="article-more-link">
-            <a href="/2016/07/20/代码中的命名问题-命名太长了！/#more">Read More</a>
-          </p>
-        
-      
-    </div>
-
-
-	<!-- css -->
-	<style type="text/css">
-	    .center {
-	        text-align: center;
-	    }
-	    .hidden {
-	        display: none;
-	    }
-		.donate_bar a.btn_donate{
-			display: inline-block;
-			width: 82px;
-			height: 82px;
-			background: url("http://7xsl28.com1.z0.glb.clouddn.com/btn_reward.gif") no-repeat;
-			_background: url("http://7xsl28.com1.z0.glb.clouddn.com/btn_reward.gif") no-repeat;
-
-			<!-- http://img.t.sinajs.cn/t5/style/images/apps_PRF/e_media/btn_reward.gif
-			     因为本 hexo 生成的博客所用的 theme 的 a:hover 带动画效果，
-				 为了在让打赏按钮显示效果正常 而 添加了以下几行 css，
-				 嵌入其它博客时不一定要它们。 -->
-			-webkit-transition: background 0s;
-			-moz-transition: background 0s;
-			-o-transition: background 0s;
-			-ms-transition: background 0s;
-			transition: background 0s;
-			<!-- /让打赏按钮的效果显示正常 而 添加的几行 css 到此结束 -->
-		}
-
-		.donate_bar a.btn_donate:hover{ background-position: 0px -82px;}
-		.donate_bar .donate_txt {
-			display: block;
-			color: #9d9d9d;
-			font: 14px/2 "Microsoft Yahei";
-		}
-		.bold{ font-weight: bold; }
-	</style>
-	<!-- /css -->
-
-    <!-- Donate Module -->
-    <div id="donate_module">
-
-	<!-- btn_donate & tips -->
-	<div id="donate_board" class="donate_bar center">
-	    <br>
-	    ------------------------------------------------------------------------------------------------------------------------------
-	    <br>
-		<a id="btn_donate" class="btn_donate" target="_self" href="javascript:;" title="Donate 打赏"></a>
-		<span class="donate_txt">
-			打赏我的人，运气都不会太差~
-		</span>
-			
-		
-	</div>
-	<!-- /btn_donate & tips -->
-
-	<!-- donate guide -->
-    
-	<div id="donate_guide" class="donate_bar center hidden">
-        <br>
-	    ------------------------------------------------------------------------------------------------------------------------------
-	    <br>
-	    
-	    <div width="100%" align="center"><div name="dashmain" id="dash-main-id-87895f" class="dash-main-3 87895f-0.99"></div></div>
-		<script type="text/javascript" charset="utf-8" src="http://www.dashangcloud.com/static/ds.js"></script>
-		
-
-		<a href="http://o8sltkx20.bkt.clouddn.com/0004.jpg" title="用微信扫一扫哦~" class="fancybox" rel="article0">
-			<img src="http://o8sltkx20.bkt.clouddn.com/0004.jpg" title="微信打赏 Donate" height="190px" width="auto"/>
-		</a>
-        
-        &nbsp;&nbsp;
-
-		<a href="http://o8sltkx20.bkt.clouddn.com/0002.jpg" title="用支付宝扫一扫即可~" class="fancybox" rel="article0">
-			<img src="http://o8sltkx20.bkt.clouddn.com/0002.jpg" title="支付宝打赏 Donate" height="190px" width="auto"/>
-		</a>
-
-		<span class="donate_txt">
-			打赏我的人，运气都不会太差~
-		</span>
-
-	</div>
-	<!-- /donate guide -->
-
-	<!-- donate script -->
-	<script type="text/javascript">
-		document.getElementById('btn_donate').onclick = function() {
-			$('#donate_board').addClass('hidden');
-	    $('#donate_guide').removeClass('hidden');
-		}
-
-		function donate_on_web(){
-			$('#donate').submit();
-        }
-
-		var original_window_onload = window.onload;
-        window.onload = function () {
-            if (original_window_onload) {
-                original_window_onload();
-            }
-            document.getElementById('donate_board_wdg').className = 'hidden';
-		}
-	</script>
-	<!-- /donate script -->
-</div>
-<!-- /Donate Module -->
-   
-
-    <footer class="article-footer">
-      <a data-url="http://xiajunhust.github.io/2016/07/20/代码中的命名问题-命名太长了！/" data-id="ciwp0htd0000mqiwf7f3ox6zl" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/代码设计/">代码设计</a></li></ul>
 
     </footer>
   </div>
@@ -1650,7 +1635,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">标签</h3>
     <div class="widget">
-      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/InfluxDB/">InfluxDB</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Java/">Java</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/MySQL/">MySQL</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/RocketMQ/">RocketMQ</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/代码设计/">代码设计</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/开发工具/">开发工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/思考-读书笔记/">思考&读书笔记</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/测试技术/">测试技术</a></li></ul>
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Hystrix/">Hystrix</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/InfluxDB/">InfluxDB</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Java/">Java</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/MySQL/">MySQL</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ReactiveX/">ReactiveX</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/RocketMQ/">RocketMQ</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/代码设计/">代码设计</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/开发工具/">开发工具</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/思考-读书笔记/">思考&读书笔记</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/测试技术/">测试技术</a></li></ul>
     </div>
   </div>
 
@@ -1660,7 +1645,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">标签云</h3>
     <div class="widget tagcloud">
-      <a href="/tags/InfluxDB/" style="font-size: 10px;">InfluxDB</a> <a href="/tags/Java/" style="font-size: 15px;">Java</a> <a href="/tags/MySQL/" style="font-size: 15px;">MySQL</a> <a href="/tags/RocketMQ/" style="font-size: 20px;">RocketMQ</a> <a href="/tags/代码设计/" style="font-size: 10px;">代码设计</a> <a href="/tags/开发工具/" style="font-size: 15px;">开发工具</a> <a href="/tags/思考-读书笔记/" style="font-size: 10px;">思考&读书笔记</a> <a href="/tags/测试技术/" style="font-size: 10px;">测试技术</a>
+      <a href="/tags/Hystrix/" style="font-size: 10px;">Hystrix</a> <a href="/tags/InfluxDB/" style="font-size: 10px;">InfluxDB</a> <a href="/tags/Java/" style="font-size: 15px;">Java</a> <a href="/tags/MySQL/" style="font-size: 15px;">MySQL</a> <a href="/tags/ReactiveX/" style="font-size: 10px;">ReactiveX</a> <a href="/tags/RocketMQ/" style="font-size: 20px;">RocketMQ</a> <a href="/tags/代码设计/" style="font-size: 10px;">代码设计</a> <a href="/tags/开发工具/" style="font-size: 15px;">开发工具</a> <a href="/tags/思考-读书笔记/" style="font-size: 10px;">思考&读书笔记</a> <a href="/tags/测试技术/" style="font-size: 10px;">测试技术</a>
     </div>
   </div>
 
@@ -1682,6 +1667,10 @@
       <ul>
         
           <li>
+            <a href="/2016/12/18/从Hystrix-DashboardData看ReativeX的使用/">从Hystrix DashboardData看ReativeX的使用</a>
+          </li>
+        
+          <li>
             <a href="/2016/12/13/InfluxDB写入失败-partial-write-max-values-per-tag-limit-exceeded/">InfluxDB写入失败-partial write: max-values-per-tag limit exceeded</a>
           </li>
         
@@ -1695,10 +1684,6 @@
         
           <li>
             <a href="/2016/11/12/RocketMQ源码学习之二-同步消息发送/">RocketMQ源码学习之二-同步消息发送</a>
-          </li>
-        
-          <li>
-            <a href="/2016/11/12/RocketMQ源码学习之一-MAC系统单机环境搭建/">RocketMQ源码学习之一-MAC单机环境搭建</a>
           </li>
         
       </ul>

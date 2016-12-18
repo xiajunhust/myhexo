@@ -22,6 +22,8 @@ java.lang.RuntimeException: {"error":"partial write: max-values-per-tag limit ex
 
 Google搜索了下，这是InfluxDB v1.1.0 [2016-11-14]版本新加的一个特性([CHANGELOG.md](https://github.com/influxdata/influxdb/blob/master/CHANGELOG.md))：
 
+<!-- more -->
+
 <I>
 max-values-per-tag was added with a default of 100,000, but can be disabled by setting it to 0. Existing measurements with tags that exceed this limit will continue to load, but writes that would cause the tags cardinality to increase will be dropped and a partial write error will be returned to the caller. This limit can be used to prevent high cardinality tag values from being written to a measurement.
 </I>

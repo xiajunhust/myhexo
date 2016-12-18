@@ -17,13 +17,14 @@ date: 2016-11-19 11:39:31
 ## 专业技能
 - Java(集合、并发、内存模型)
 - JVM
-- RxJava、Reactive Programming
+- Reactivex、Reactive Programming
 - Spring(IOC、AOP)
 - Mysql
-- dubbo
+- Dubbo
 - RocketMQ
 - Redis
 - HBase
+- 缓存
 - Netty
 - InfluxDB
 - 分布式调度
