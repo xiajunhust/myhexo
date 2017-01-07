@@ -6,24 +6,24 @@
   <title>从Hystrix DashboardData看ReativeX的使用 | 江南烟雨的个人博客</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <meta name="description" content="最近在将系统中服务降级框架Hystrix的运行时的一些指标数据接入到监控平台，需要获取Hystrix的Dashboard数据。发现用到了ReactiveX的知识，因此总结下。
-1 如何获取Hystrix的Dashboard数据获取Hystrix的Dashboard数据比较简单，实现一个观察者即可接收Dashboard数据，如下代码：
-12345678910Observable&amp;lt;Hystrix">
+注：本文基于的Hystrix的版本是：
+123456&amp;lt;hystrix.version&amp;gt;1.5.7&amp;lt;/hystrix.version&amp;gt;&amp;lt;dependency&amp;gt;    &amp;lt;groupId&amp;">
 <meta property="og:type" content="article">
 <meta property="og:title" content="从Hystrix DashboardData看ReativeX的使用">
 <meta property="og:url" content="http://xiajunhust.github.io/2016/12/18/从Hystrix-DashboardData看ReativeX的使用/index.html">
 <meta property="og:site_name" content="江南烟雨的个人博客">
 <meta property="og:description" content="最近在将系统中服务降级框架Hystrix的运行时的一些指标数据接入到监控平台，需要获取Hystrix的Dashboard数据。发现用到了ReactiveX的知识，因此总结下。
-1 如何获取Hystrix的Dashboard数据获取Hystrix的Dashboard数据比较简单，实现一个观察者即可接收Dashboard数据，如下代码：
-12345678910Observable&amp;lt;Hystrix">
-<meta property="og:image" content="https://mcxiaoke.gitbooks.io/rxdocs/content/images/operators/interval.png">
-<meta property="og:image" content="https://mcxiaoke.gitbooks.io/rxdocs/content/images/operators/map.png">
-<meta property="og:updated_time" content="2016-12-18T07:16:06.000Z">
+注：本文基于的Hystrix的版本是：
+123456&amp;lt;hystrix.version&amp;gt;1.5.7&amp;lt;/hystrix.version&amp;gt;&amp;lt;dependency&amp;gt;    &amp;lt;groupId&amp;">
+<meta property="og:image" content="http://o8sltkx20.bkt.clouddn.com/rx-001-001.png">
+<meta property="og:image" content="http://o8sltkx20.bkt.clouddn.com/rx-001-002.png">
+<meta property="og:updated_time" content="2016-12-24T15:03:11.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="从Hystrix DashboardData看ReativeX的使用">
 <meta name="twitter:description" content="最近在将系统中服务降级框架Hystrix的运行时的一些指标数据接入到监控平台，需要获取Hystrix的Dashboard数据。发现用到了ReactiveX的知识，因此总结下。
-1 如何获取Hystrix的Dashboard数据获取Hystrix的Dashboard数据比较简单，实现一个观察者即可接收Dashboard数据，如下代码：
-12345678910Observable&amp;lt;Hystrix">
-<meta name="twitter:image" content="https://mcxiaoke.gitbooks.io/rxdocs/content/images/operators/interval.png">
+注：本文基于的Hystrix的版本是：
+123456&amp;lt;hystrix.version&amp;gt;1.5.7&amp;lt;/hystrix.version&amp;gt;&amp;lt;dependency&amp;gt;    &amp;lt;groupId&amp;">
+<meta name="twitter:image" content="http://o8sltkx20.bkt.clouddn.com/rx-001-001.png">
   
     <link rel="alternate" href="/atom.xml" title="江南烟雨的个人博客" type="application/atom+xml">
   
@@ -97,6 +97,8 @@
     <div class="article-entry" itemprop="articleBody">
       
         <p>最近在将系统中服务降级框架<a href="https://github.com/Netflix/Hystrix" target="_blank" rel="external">Hystrix</a>的运行时的一些指标数据接入到监控平台，需要获取Hystrix的Dashboard数据。发现用到了<a href="http://reactivex.io/" target="_blank" rel="external">ReactiveX</a>的知识，因此总结下。</p>
+<p>注：本文基于的Hystrix的版本是：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">&lt;hystrix.version&gt;1.5.7&lt;/hystrix.version&gt;</div><div class="line">&lt;dependency&gt;</div><div class="line">    &lt;groupId&gt;com.netflix.hystrix&lt;/groupId&gt;</div><div class="line">    &lt;artifactId&gt;hystrix-core&lt;/artifactId&gt;</div><div class="line">    &lt;version&gt;$&#123;hystrix.version&#125;&lt;/version&gt;</div><div class="line">&lt;/dependency&gt;</div></pre></td></tr></table></figure>
 <h2 id="1-如何获取Hystrix的Dashboard数据"><a href="#1-如何获取Hystrix的Dashboard数据" class="headerlink" title="1 如何获取Hystrix的Dashboard数据"></a>1 如何获取Hystrix的Dashboard数据</h2><p>获取Hystrix的Dashboard数据比较简单，实现一个观察者即可接收Dashboard数据，如下代码：</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">Observable&lt;HystrixDashboardStream.DashboardData&gt; </div><div class="line">       dashboardDataObservable = HystrixDashboardStream.getInstance().observe();</div><div class="line">   </div><div class="line">dashboardDataObservable.subscribe(new Action1&lt;HystrixDashboardStream.DashboardData&gt;() &#123;</div><div class="line">	@Override</div><div class="line">	public void call(HystrixDashboardStream.DashboardData dashboardData) &#123;</div><div class="line">	</div><div class="line">	//do something</div><div class="line">	&#125;</div><div class="line">&#125;);</div></pre></td></tr></table></figure>
 <h2 id="2-HystrixDashboard设计"><a href="#2-HystrixDashboard设计" class="headerlink" title="2 HystrixDashboard设计"></a>2 HystrixDashboard设计</h2><a id="more"></a>
@@ -131,10 +133,10 @@
 <h3 id="2-2-2-Hystrix-Dashboard对ReactiveX的使用"><a href="#2-2-2-Hystrix-Dashboard对ReactiveX的使用" class="headerlink" title="2.2.2 Hystrix Dashboard对ReactiveX的使用"></a>2.2.2 Hystrix Dashboard对ReactiveX的使用</h3><p>在HystrixDashboardStream的构造函数中创建了Observable：</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div></pre></td><td class="code"><pre><div class="line">private static final DynamicIntProperty dataEmissionIntervalInMs =</div><div class="line">            DynamicPropertyFactory.getInstance().getIntProperty(&quot;hystrix.stream.dashboard.intervalInMilliseconds&quot;, 500);</div><div class="line"></div><div class="line">private HystrixDashboardStream(int delayInMs) &#123;</div><div class="line">    this.delayInMs = delayInMs;</div><div class="line">    this.singleSource = Observable.interval(delayInMs, TimeUnit.MILLISECONDS)</div><div class="line">            .map(new Func1&lt;Long, DashboardData&gt;() &#123;</div><div class="line">                @Override</div><div class="line">                public DashboardData call(Long timestamp) &#123;</div><div class="line">                    return new DashboardData(</div><div class="line">                            HystrixCommandMetrics.getInstances(),</div><div class="line">                            HystrixThreadPoolMetrics.getInstances(),</div><div class="line">                            HystrixCollapserMetrics.getInstances()</div><div class="line">                    );</div><div class="line">                &#125;</div><div class="line">            &#125;)</div><div class="line">            .doOnSubscribe(new Action0() &#123;</div><div class="line">                @Override</div><div class="line">                public void call() &#123;</div><div class="line">                    isSourceCurrentlySubscribed.set(true);</div><div class="line">                &#125;</div><div class="line">            &#125;)</div><div class="line">            .doOnUnsubscribe(new Action0() &#123;</div><div class="line">                @Override</div><div class="line">                public void call() &#123;</div><div class="line">                    isSourceCurrentlySubscribed.set(false);</div><div class="line">                &#125;</div><div class="line">            &#125;)</div><div class="line">            .share()</div><div class="line">            .onBackpressureDrop();</div><div class="line">&#125;</div></pre></td></tr></table></figure>
 <p>这里创建一个按固定时间间隔发射整数序列的Observable，默认间隔时间是500ms。</p>
-<p><img src="https://mcxiaoke.gitbooks.io/rxdocs/content/images/operators/interval.png" alt="operators.interval"></p>
-<p>RxJava中<a href="http://reactivex.io/RxJava/javadoc/rx/Observable.html#interval(long,%20java.util.concurrent.TimeUnit" target="_blank" rel="external">Observable.interval</a>).</p>
+<p><img src="http://o8sltkx20.bkt.clouddn.com/rx-001-001.png" alt="operators.interval"></p>
+<p>RxJava中<a href="http://o8sltkx20.bkt.clouddn.com/rx-001-002.png" target="_blank" rel="external">Observable.interval</a>.</p>
 <p>创建了Observable之后，紧接着调用了变换函数Map。  </p>
-<p><img src="https://mcxiaoke.gitbooks.io/rxdocs/content/images/operators/map.png" alt="operators.map"></p>
+<p><img src="http://o8sltkx20.bkt.clouddn.com/rx-001-002.png" alt="operators.map"></p>
 <p>它对Observable发射的每一项数据应用一个函数，执行变换操作。这里的函数是调用HystrixCommandMetrics、HystrixThreadPoolMetrics、HystrixCollapserMetrics的实例获取方法，返回对应的Dashboard数据。</p>
 <p>doOnSubscribe-当被订阅的时候，执行对应的操作。<br>doOnUnsubscribe-当没有订阅者的时候，执行对应的操作。</p>
 <h1 id="3-参考资料"><a href="#3-参考资料" class="headerlink" title="3 参考资料"></a>3 参考资料</h1><ul>
@@ -254,7 +256,7 @@
    
 
     <footer class="article-footer">
-      <a data-url="http://xiajunhust.github.io/2016/12/18/从Hystrix-DashboardData看ReativeX的使用/" data-id="ciwubjscc000p2hwf00ilawmk" class="article-share-link">Share</a>
+      <a data-url="http://xiajunhust.github.io/2016/12/18/从Hystrix-DashboardData看ReativeX的使用/" data-id="cixmwxr2x000nr2wfxgr8fzis" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Hystrix/">Hystrix</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/ReactiveX/">ReactiveX</a></li></ul>
@@ -264,6 +266,15 @@
   
     
 <nav id="article-nav">
+  
+    <a href="/2016/12/28/Hystrix-Dashborad数据介绍/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          Hystrix Dashborad数据介绍
+        
+      </div>
+    </a>
   
   
     <a href="/2016/12/13/InfluxDB写入失败-partial-write-max-values-per-tag-limit-exceeded/" id="article-nav-older" class="article-nav-link-wrap">
@@ -318,7 +329,7 @@ var duoshuoQuery = {short_name:"xiajun"};
   <div class="widget-wrap">
     <h3 class="widget-title">标签云</h3>
     <div class="widget tagcloud">
-      <a href="/tags/Hystrix/" style="font-size: 10px;">Hystrix</a> <a href="/tags/InfluxDB/" style="font-size: 10px;">InfluxDB</a> <a href="/tags/Java/" style="font-size: 15px;">Java</a> <a href="/tags/MySQL/" style="font-size: 15px;">MySQL</a> <a href="/tags/ReactiveX/" style="font-size: 10px;">ReactiveX</a> <a href="/tags/RocketMQ/" style="font-size: 20px;">RocketMQ</a> <a href="/tags/代码设计/" style="font-size: 10px;">代码设计</a> <a href="/tags/开发工具/" style="font-size: 15px;">开发工具</a> <a href="/tags/思考-读书笔记/" style="font-size: 10px;">思考&读书笔记</a> <a href="/tags/测试技术/" style="font-size: 10px;">测试技术</a>
+      <a href="/tags/Hystrix/" style="font-size: 10px;">Hystrix</a> <a href="/tags/InfluxDB/" style="font-size: 10px;">InfluxDB</a> <a href="/tags/Java/" style="font-size: 13.33px;">Java</a> <a href="/tags/MySQL/" style="font-size: 16.67px;">MySQL</a> <a href="/tags/ReactiveX/" style="font-size: 10px;">ReactiveX</a> <a href="/tags/RocketMQ/" style="font-size: 20px;">RocketMQ</a> <a href="/tags/代码设计/" style="font-size: 10px;">代码设计</a> <a href="/tags/开发工具/" style="font-size: 13.33px;">开发工具</a> <a href="/tags/思考-读书笔记/" style="font-size: 10px;">思考&读书笔记</a> <a href="/tags/测试技术/" style="font-size: 10px;">测试技术</a>
     </div>
   </div>
 
@@ -327,7 +338,7 @@ var duoshuoQuery = {short_name:"xiajun"};
   <div class="widget-wrap">
     <h3 class="widget-title">归档</h3>
     <div class="widget">
-      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">十二月 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/11/">十一月 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">八月 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a></li></ul>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/01/">一月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">十二月 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/11/">十一月 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">八月 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a></li></ul>
     </div>
   </div>
 
@@ -340,6 +351,14 @@ var duoshuoQuery = {short_name:"xiajun"};
       <ul>
         
           <li>
+            <a href="/2017/01/07/一次大表SQL查询优化历程/">一次大表SQL查询优化历程</a>
+          </li>
+        
+          <li>
+            <a href="/2016/12/28/Hystrix-Dashborad数据介绍/">Hystrix Dashborad数据介绍</a>
+          </li>
+        
+          <li>
             <a href="/2016/12/18/从Hystrix-DashboardData看ReativeX的使用/">从Hystrix DashboardData看ReativeX的使用</a>
           </li>
         
@@ -349,14 +368,6 @@ var duoshuoQuery = {short_name:"xiajun"};
         
           <li>
             <a href="/2016/11/17/RocketMQ源码学习之四-PushConsumer/">RocketMQ源码学习之四-PushConsumer</a>
-          </li>
-        
-          <li>
-            <a href="/2016/11/14/RocketMQ源码学习之三-异步消息发送/">RocketMQ源码学习之三-异步消息发送</a>
-          </li>
-        
-          <li>
-            <a href="/2016/11/12/RocketMQ源码学习之二-同步消息发送/">RocketMQ源码学习之二-同步消息发送</a>
           </li>
         
       </ul>
@@ -374,7 +385,7 @@ var duoshuoQuery = {short_name:"xiajun"};
   <div class="outer">
    
     <div id="footer-info" class="inner">
-      &copy; 2016 江南烟雨<br>
+      &copy; 2017 江南烟雨<br>
      本站总访问量<span id="busuanzi_value_site_pv"></span>次</br>
      本站访客数<span id="busuanzi_value_site_uv"></span>人次</br>
 

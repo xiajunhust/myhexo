@@ -63,6 +63,349 @@
       <div class="outer">
         <section id="main">
   
+    <article id="post-一次大表SQL查询优化历程" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2017/01/07/一次大表SQL查询优化历程/" class="article-date">
+  <time datetime="2017-01-07T02:56:56.000Z" itemprop="datePublished">2017-01-07</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2017/01/07/一次大表SQL查询优化历程/">一次大表SQL查询优化历程</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>本文主要介绍了一次查询SQL查询性能优化的整个过程。</p>
+<h2 id="1-背景"><a href="#1-背景" class="headerlink" title="1 背景"></a>1 背景</h2><p>有一张存储了订单数据的单表，为了防止表过大，需要删除历史的已达到终态的订单，只保留近期的数据以及历史的未达到终态的订单数据。这张表trade_order的大致结构是这样的（内容有缩减）：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line">CREATE TABLE &quot;trade_order&quot; (</div><div class="line">  &quot;id&quot; int(10) unsigned NOT NULL AUTO_INCREMENT,</div><div class="line">  &quot;order_no&quot; varchar(30) NOT NULL DEFAULT &apos;&apos;,</div><div class="line">  &quot;update_time&quot; datetime DEFAULT NULL COMMENT &apos;订单更新时间&apos;,</div><div class="line">  &quot;book_time&quot; datetime DEFAULT NULL COMMENT &apos;预订时间&apos;,</div><div class="line">  &quot;gmt_create_time&quot; datetime NOT NULL COMMENT &apos;DB数据创建时间&apos;,</div><div class="line">  &quot;gmt_modify_time&quot; datetime NOT NULL COMMENT &apos;DB数据更新时间&apos;,</div><div class="line">  &quot;version&quot; tinyint(4) unsigned NOT NULL DEFAULT &apos;0&apos; COMMENT &apos;乐观锁&apos;,</div><div class="line">  PRIMARY KEY (&quot;id&quot;),</div><div class="line">  UNIQUE KEY &quot;order_no&quot; (&quot;order_no&quot;),</div><div class="line">  KEY &quot;update_time_state&quot; (&quot;update_time&quot;,&quot;state&quot;),</div><div class="line">  KEY &quot;idx_stbyway_bktime&quot; (&quot;state&quot;,&quot;buy_way&quot;,&quot;book_time&quot;,&quot;id&quot;)</div><div class="line">)</div></pre></td></tr></table></figure>
+<p>数据量：<br>500-800w条左右。</p>
+<p>我们需要删除更新时间在某个阈值之前，并且已达到终态（终态对应的状态有2个）的订单数据。我们不能直接这么做：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">delete from trade_order where update_time &lt; #&#123;updateTimeThreshold&#125; and (state = 99 or state = 100).</div></pre></td></tr></table></figure>
+<p>原因是：  </p>
+<ul>
+<li>update_time并不是唯一索引，这条SQL会加GAP锁。</li>
+<li>由于数据量比较大，会被kill。</li>
+</ul>
+<p>因此只能先查询出满足条件的订单，然后依据订单id（主键）去执行删除操作。重点来了，如果查询SQL设计的不合理，就会导致效率低下被kill。</p>
+<h2 id="2-SQL查询优化过程"><a href="#2-SQL查询优化过程" class="headerlink" title="2 SQL查询优化过程"></a>2 SQL查询优化过程</h2><h3 id="2-1-最原始的SQL查询"><a href="#2-1-最原始的SQL查询" class="headerlink" title="2.1 最原始的SQL查询"></a>2.1 最原始的SQL查询</h3><p>为了记录删除了哪些订单，因此我们需要记录被删除的订单的订单号。在查询的时候不仅需要查询出id，还需要查询出orderNo。<br>我们批量查询，每次查询一批（比如1000条），删除这1000条数据，循环执行，直到查询到的满足条件的订单列表为空。<br>最简单的满足功能的查询语句：  </p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">select id,order_no from trade_order where update_time &lt; #&#123;updateTimeThreshold&#125; and (state = 99 or state = 100) order by id limit 1000;</div></pre></td></tr></table></figure>
+<p>以及：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">select id,order_no from trade_order where update_time &lt; #&#123;updateTimeThreshold&#125; and state in (99,100) limit 1000;</div></pre></td></tr></table></figure>
+<p>关于in和or二者的性能对比，查阅了一些资料，in的性能要优于or。原因是，如果要判断的值是常量，则in可以通过排序然后二分查找。具体可以参考文末的参考资料。<br>我们可以使用mysql的explain命令来查看二者的区别：  </p>
+<p><img src="http://o8sltkx20.bkt.clouddn.com/mysql-query-optimize-001-001.jpeg" alt="explain-or VS in"></p>
+<p>我们发现extra处：or是Using where，而in是Using index condition。  </p>
+<blockquote>
+<p>Using where:<br>mysql从存储引擎收到行后再进行“后过滤（Post-filter）”。后过滤：先读取整行数据，再检查是否符合where的条件，符合就留下，不符合便丢弃。检测是在读取行后进行的，所以叫后过滤。<br>Using index:<br>此查询使用了覆盖索引（Convering Index），即通过索引就能返回结果，无需访问表。弱没显示“Using Index”表示读取了表数据。<br>Using index where:<br>这里涉及到mysql的<a href="http://dev.mysql.com/doc/refman/5.7/en/index-condition-pushdown-optimization.html" target="_blank" rel="external">Index Condition Pushdown (ICP)</a>优化机制。当开启了ICP优化机制后，如果where语句中的部分判断能够仅仅依据索引字段来判断，那么mysql server会将这部分判断下沉到存储引擎层面。存储引擎会依据索引来做判断，如果满足才会去读表中的行。ICP能够减少存储引擎访问基础表的次数以及mysql访问存储引擎的次数。  </p>
+</blockquote>
+<p>可以发现Using index where优于Using where，因此in优于or。</p>
+<p>发现执行了一段时间后就被系统kill了。</p>
+<h3 id="2-2-采用union-all替代in-or"><a href="#2-2-采用union-all替代in-or" class="headerlink" title="2.2 采用union all替代in/or"></a>2.2 采用union all替代in/or</h3><p>in以及or经常导致mysql放弃使用索引而扫全表，如果两个判断不会产生重复的数据，可以考虑拆成union all：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">select id,order_no from trade_order where state = 99 and update_time &lt; #&#123;updateTimeThreshold&#125; limit 1000   </div><div class="line">union all   </div><div class="line">select id,order_no from trade_order where state = 100 and update_time &lt; #&#123;updateTimeThreshold&#125; limit 1000;</div></pre></td></tr></table></figure>
+<p>发现结果依然是运行一段时间就被kill了。</p>
+<p>主要原因还是因为使用的是Using where，导致需要扫描很多行数据：<br><img src="http://o8sltkx20.bkt.clouddn.com/mysql-query-optimize-001-002.jpeg" alt="explain-union all"></p>
+<h3 id="2-3-延迟关联-deferred-join-delayed-JOIN"><a href="#2-3-延迟关联-deferred-join-delayed-JOIN" class="headerlink" title="2.3 延迟关联(deferred join/delayed JOIN)"></a>2.3 延迟关联(deferred join/delayed JOIN)</h3><p>前面的几步中的SQL都是同时取出id和orderNo，而id是主键，但是orderNo不是主键，这种情况是使用延迟关联的好机会:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">SELECT  a.id,order_no  FROM  trade_order a,   </div><div class="line">(select  id  from  trade_order where  state = 100 and update_time &lt; ‘2016-12-22 22:00:00&apos; limit 1000) b    </div><div class="line">WHERE  a.id = b.id;</div></pre></td></tr></table></figure>
+<p>何谓”延迟关联” ：通过使用<b>覆盖索引(covering index)</b>查询返回需要的主键,再根据主键关联原表获得需要的数据。  </p>
+<blockquote>
+<p>何为“覆盖索引（covering index）”<br>A covering index refers to the case when all fields selected in a query are covered by an index, in that case InnoDB (not MyISAM) will never read the data in the table, but only use the data in the index, significantly speeding up the select.<br>Note that in InnoDB the primary key is included in all secondary indexes, so in a way all secondary indexes are compound indexes.</p>
+</blockquote>
+<p>我们可以用explain查看下上述SQL的执行计划：<br><img src="http://o8sltkx20.bkt.clouddn.com/mysql-query-optimize-001-003.jpeg" alt="explain-union all"></p>
+<p>结果：<br>较前几步的性能有了非常大的提高：一次性删除了359万条数据才最终被kill。<br><img src="http://o8sltkx20.bkt.clouddn.com/mysql-query-optimize-001-004.png" alt="explain-deferred join"></p>
+<p>SQL最终还是没有执行成功，还需继续优化。</p>
+<h3 id="2-4-时间段拆分"><a href="#2-4-时间段拆分" class="headerlink" title="2.4 时间段拆分"></a>2.4 时间段拆分</h3><p>通常我们写sql要注意一点是少用&gt;、&lt;。但是这里不可避免。能做的只能增加一个时间段下限判断，减少扫描的行的数量。<br>我们将时间段划分为多个区间，每个区间长度是1个月，同时将2个状态分开处理，这样顺利的删除了表中所有的过期数据。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div></pre></td><td class="code"><pre><div class="line">&lt;select id=&quot;getExpiredCloseStateOrder&quot; resultMap=&quot;OrderResultMap&quot;&gt;</div><div class="line">    SELECT</div><div class="line">    a.id,order_no</div><div class="line">    FROM</div><div class="line">    &lt;include refid=&quot;tableName&quot;/&gt; a,</div><div class="line">    (select</div><div class="line">    id</div><div class="line">    from</div><div class="line">    &lt;include refid=&quot;tableName&quot;/&gt;</div><div class="line">    where</div><div class="line">    &lt;![CDATA[</div><div class="line">        state = 99 and update_time &gt;= #&#123;updateTimeStart&#125; and update_time &lt; #&#123;updateTimeEnd&#125; limit #&#123;limitSize&#125;</div><div class="line">    ]]&gt; ) b</div><div class="line">    WHERE</div><div class="line">    a.id = b.id</div><div class="line">&lt;/select&gt;</div><div class="line"></div><div class="line">&lt;select id=&quot;getExpiredSuccessStateOrder&quot; resultMap=&quot;OrderResultMap&quot;&gt;</div><div class="line">    SELECT</div><div class="line">    a.id,order_no</div><div class="line">    FROM</div><div class="line">    &lt;include refid=&quot;tableName&quot;/&gt; a,</div><div class="line">    (select</div><div class="line">    id</div><div class="line">    from</div><div class="line">    &lt;include refid=&quot;tableName&quot;/&gt;</div><div class="line">    where</div><div class="line">    &lt;![CDATA[</div><div class="line">        state = 100 and update_time &gt;= #&#123;updateTimeStart&#125; and update_time &lt; #&#123;updateTimeEnd&#125; limit #&#123;limitSize&#125;</div><div class="line">    ]]&gt; ) b</div><div class="line">    WHERE</div><div class="line">    a.id = b.id</div><div class="line">&lt;/select&gt;</div></pre></td></tr></table></figure>
+<h2 id="3-参考资料"><a href="#3-参考资料" class="headerlink" title="3 参考资料"></a>3 参考资料</h2><ul>
+<li><a href="http://lists.mysql.com/mysql/216945" target="_blank" rel="external">Subject-IN vs. OR on performance</a></li>
+<li><a href="http://stackoverflow.com/questions/782915/mysql-or-vs-in-performance" target="_blank" rel="external">stackoverflow-mysql-or-vs-in-performance</a></li>
+<li><a href="https://dev.mysql.com/doc/refman/5.6/en/index-condition-pushdown-optimization.html" target="_blank" rel="external">push down optimization</a></li>
+<li><a href="http://stackoverflow.com/questions/1687548/mysql-explain-using-index-vs-using-index-condition" target="_blank" rel="external">mysql-explain-using-index-vs-using-index-condition</a></li>
+<li><a href="http://stackoverflow.com/questions/25672552/whats-the-difference-between-using-index-and-using-where-using-index-in-the" target="_blank" rel="external">whats-the-difference-between-using-index-and-using-where-using-index-in-the</a></li>
+<li><a href="http://blog.itpub.net/22664653/viewspace-1176153/" target="_blank" rel="external">【MySQL】 性能优化之 延迟关联 </a></li>
+<li><a href="http://stackoverflow.com/questions/8213235/mysql-covering-vs-composite-vs-column-index" target="_blank" rel="external">Mysql covering vs composite vs column index</a></li>
+</ul>
+<h2 id="版权声明"><a href="#版权声明" class="headerlink" title="版权声明"></a>版权声明</h2><p>本文首发于<a href="http://xiajunhust.github.io/">江南烟雨的个人博客</a>博客（ <a href="http://xiajunhust.github.io/">http://xiajunhust.github.io/</a> ），版权所有，侵权必究。<br>本文永久链接：<a href="http://xiajunhust.github.io/2017/01/07/一次大表SQL查询优化历程/">http://xiajunhust.github.io/2017/01/07/一次大表SQL查询优化历程/</a></p>
+
+      
+    </div>
+
+
+	<!-- css -->
+	<style type="text/css">
+	    .center {
+	        text-align: center;
+	    }
+	    .hidden {
+	        display: none;
+	    }
+		.donate_bar a.btn_donate{
+			display: inline-block;
+			width: 82px;
+			height: 82px;
+			background: url("http://7xsl28.com1.z0.glb.clouddn.com/btn_reward.gif") no-repeat;
+			_background: url("http://7xsl28.com1.z0.glb.clouddn.com/btn_reward.gif") no-repeat;
+
+			<!-- http://img.t.sinajs.cn/t5/style/images/apps_PRF/e_media/btn_reward.gif
+			     因为本 hexo 生成的博客所用的 theme 的 a:hover 带动画效果，
+				 为了在让打赏按钮显示效果正常 而 添加了以下几行 css，
+				 嵌入其它博客时不一定要它们。 -->
+			-webkit-transition: background 0s;
+			-moz-transition: background 0s;
+			-o-transition: background 0s;
+			-ms-transition: background 0s;
+			transition: background 0s;
+			<!-- /让打赏按钮的效果显示正常 而 添加的几行 css 到此结束 -->
+		}
+
+		.donate_bar a.btn_donate:hover{ background-position: 0px -82px;}
+		.donate_bar .donate_txt {
+			display: block;
+			color: #9d9d9d;
+			font: 14px/2 "Microsoft Yahei";
+		}
+		.bold{ font-weight: bold; }
+	</style>
+	<!-- /css -->
+
+    <!-- Donate Module -->
+    <div id="donate_module">
+
+	<!-- btn_donate & tips -->
+	<div id="donate_board" class="donate_bar center">
+	    <br>
+	    ------------------------------------------------------------------------------------------------------------------------------
+	    <br>
+		<a id="btn_donate" class="btn_donate" target="_self" href="javascript:;" title="Donate 打赏"></a>
+		<span class="donate_txt">
+			打赏我的人，运气都不会太差~
+		</span>
+			
+		
+	</div>
+	<!-- /btn_donate & tips -->
+
+	<!-- donate guide -->
+    
+	<div id="donate_guide" class="donate_bar center hidden">
+        <br>
+	    ------------------------------------------------------------------------------------------------------------------------------
+	    <br>
+	    
+	    <div width="100%" align="center"><div name="dashmain" id="dash-main-id-87895f" class="dash-main-3 87895f-0.99"></div></div>
+		<script type="text/javascript" charset="utf-8" src="http://www.dashangcloud.com/static/ds.js"></script>
+		
+
+		<a href="http://o8sltkx20.bkt.clouddn.com/0004.jpg" title="用微信扫一扫哦~" class="fancybox" rel="article0">
+			<img src="http://o8sltkx20.bkt.clouddn.com/0004.jpg" title="微信打赏 Donate" height="190px" width="auto"/>
+		</a>
+        
+        &nbsp;&nbsp;
+
+		<a href="http://o8sltkx20.bkt.clouddn.com/0002.jpg" title="用支付宝扫一扫即可~" class="fancybox" rel="article0">
+			<img src="http://o8sltkx20.bkt.clouddn.com/0002.jpg" title="支付宝打赏 Donate" height="190px" width="auto"/>
+		</a>
+
+		<span class="donate_txt">
+			打赏我的人，运气都不会太差~
+		</span>
+
+	</div>
+	<!-- /donate guide -->
+
+	<!-- donate script -->
+	<script type="text/javascript">
+		document.getElementById('btn_donate').onclick = function() {
+			$('#donate_board').addClass('hidden');
+	    $('#donate_guide').removeClass('hidden');
+		}
+
+		function donate_on_web(){
+			$('#donate').submit();
+        }
+
+		var original_window_onload = window.onload;
+        window.onload = function () {
+            if (original_window_onload) {
+                original_window_onload();
+            }
+            document.getElementById('donate_board_wdg').className = 'hidden';
+		}
+	</script>
+	<!-- /donate script -->
+</div>
+<!-- /Donate Module -->
+   
+
+    <footer class="article-footer">
+      <a data-url="http://xiajunhust.github.io/2017/01/07/一次大表SQL查询优化历程/" data-id="cixmwxr2u000lr2wfvgm1cn8s" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/MySQL/">MySQL</a></li></ul>
+
+    </footer>
+  </div>
+  
+
+
+
+</article>
+
+  
+    <article id="post-Hystrix-Dashborad数据介绍" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2016/12/28/Hystrix-Dashborad数据介绍/" class="article-date">
+  <time datetime="2016-12-28T06:17:23.000Z" itemprop="datePublished">2016-12-28</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2016/12/28/Hystrix-Dashborad数据介绍/">Hystrix Dashborad数据介绍</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        
+      
+    </div>
+
+
+	<!-- css -->
+	<style type="text/css">
+	    .center {
+	        text-align: center;
+	    }
+	    .hidden {
+	        display: none;
+	    }
+		.donate_bar a.btn_donate{
+			display: inline-block;
+			width: 82px;
+			height: 82px;
+			background: url("http://7xsl28.com1.z0.glb.clouddn.com/btn_reward.gif") no-repeat;
+			_background: url("http://7xsl28.com1.z0.glb.clouddn.com/btn_reward.gif") no-repeat;
+
+			<!-- http://img.t.sinajs.cn/t5/style/images/apps_PRF/e_media/btn_reward.gif
+			     因为本 hexo 生成的博客所用的 theme 的 a:hover 带动画效果，
+				 为了在让打赏按钮显示效果正常 而 添加了以下几行 css，
+				 嵌入其它博客时不一定要它们。 -->
+			-webkit-transition: background 0s;
+			-moz-transition: background 0s;
+			-o-transition: background 0s;
+			-ms-transition: background 0s;
+			transition: background 0s;
+			<!-- /让打赏按钮的效果显示正常 而 添加的几行 css 到此结束 -->
+		}
+
+		.donate_bar a.btn_donate:hover{ background-position: 0px -82px;}
+		.donate_bar .donate_txt {
+			display: block;
+			color: #9d9d9d;
+			font: 14px/2 "Microsoft Yahei";
+		}
+		.bold{ font-weight: bold; }
+	</style>
+	<!-- /css -->
+
+    <!-- Donate Module -->
+    <div id="donate_module">
+
+	<!-- btn_donate & tips -->
+	<div id="donate_board" class="donate_bar center">
+	    <br>
+	    ------------------------------------------------------------------------------------------------------------------------------
+	    <br>
+		<a id="btn_donate" class="btn_donate" target="_self" href="javascript:;" title="Donate 打赏"></a>
+		<span class="donate_txt">
+			打赏我的人，运气都不会太差~
+		</span>
+			
+		
+	</div>
+	<!-- /btn_donate & tips -->
+
+	<!-- donate guide -->
+    
+	<div id="donate_guide" class="donate_bar center hidden">
+        <br>
+	    ------------------------------------------------------------------------------------------------------------------------------
+	    <br>
+	    
+	    <div width="100%" align="center"><div name="dashmain" id="dash-main-id-87895f" class="dash-main-3 87895f-0.99"></div></div>
+		<script type="text/javascript" charset="utf-8" src="http://www.dashangcloud.com/static/ds.js"></script>
+		
+
+		<a href="http://o8sltkx20.bkt.clouddn.com/0004.jpg" title="用微信扫一扫哦~" class="fancybox" rel="article0">
+			<img src="http://o8sltkx20.bkt.clouddn.com/0004.jpg" title="微信打赏 Donate" height="190px" width="auto"/>
+		</a>
+        
+        &nbsp;&nbsp;
+
+		<a href="http://o8sltkx20.bkt.clouddn.com/0002.jpg" title="用支付宝扫一扫即可~" class="fancybox" rel="article0">
+			<img src="http://o8sltkx20.bkt.clouddn.com/0002.jpg" title="支付宝打赏 Donate" height="190px" width="auto"/>
+		</a>
+
+		<span class="donate_txt">
+			打赏我的人，运气都不会太差~
+		</span>
+
+	</div>
+	<!-- /donate guide -->
+
+	<!-- donate script -->
+	<script type="text/javascript">
+		document.getElementById('btn_donate').onclick = function() {
+			$('#donate_board').addClass('hidden');
+	    $('#donate_guide').removeClass('hidden');
+		}
+
+		function donate_on_web(){
+			$('#donate').submit();
+        }
+
+		var original_window_onload = window.onload;
+        window.onload = function () {
+            if (original_window_onload) {
+                original_window_onload();
+            }
+            document.getElementById('donate_board_wdg').className = 'hidden';
+		}
+	</script>
+	<!-- /donate script -->
+</div>
+<!-- /Donate Module -->
+   
+
+    <footer class="article-footer">
+      <a data-url="http://xiajunhust.github.io/2016/12/28/Hystrix-Dashborad数据介绍/" data-id="cixmwxr1w0008r2wflbz97jcj" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+
+
+
+</article>
+
+  
     <article id="post-从Hystrix-DashboardData看ReativeX的使用" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
     <a href="/2016/12/18/从Hystrix-DashboardData看ReativeX的使用/" class="article-date">
@@ -86,6 +429,8 @@
     <div class="article-entry" itemprop="articleBody">
       
         <p>最近在将系统中服务降级框架<a href="https://github.com/Netflix/Hystrix">Hystrix</a>的运行时的一些指标数据接入到监控平台，需要获取Hystrix的Dashboard数据。发现用到了<a href="http://reactivex.io/">ReactiveX</a>的知识，因此总结下。</p>
+<p>注：本文基于的Hystrix的版本是：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">&lt;hystrix.version&gt;1.5.7&lt;/hystrix.version&gt;</div><div class="line">&lt;dependency&gt;</div><div class="line">    &lt;groupId&gt;com.netflix.hystrix&lt;/groupId&gt;</div><div class="line">    &lt;artifactId&gt;hystrix-core&lt;/artifactId&gt;</div><div class="line">    &lt;version&gt;$&#123;hystrix.version&#125;&lt;/version&gt;</div><div class="line">&lt;/dependency&gt;</div></pre></td></tr></table></figure>
 <h2 id="1-如何获取Hystrix的Dashboard数据"><a href="#1-如何获取Hystrix的Dashboard数据" class="headerlink" title="1 如何获取Hystrix的Dashboard数据"></a>1 如何获取Hystrix的Dashboard数据</h2><p>获取Hystrix的Dashboard数据比较简单，实现一个观察者即可接收Dashboard数据，如下代码：</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">Observable&lt;HystrixDashboardStream.DashboardData&gt; </div><div class="line">       dashboardDataObservable = HystrixDashboardStream.getInstance().observe();</div><div class="line">   </div><div class="line">dashboardDataObservable.subscribe(new Action1&lt;HystrixDashboardStream.DashboardData&gt;() &#123;</div><div class="line">	@Override</div><div class="line">	public void call(HystrixDashboardStream.DashboardData dashboardData) &#123;</div><div class="line">	</div><div class="line">	//do something</div><div class="line">	&#125;</div><div class="line">&#125;);</div></pre></td></tr></table></figure>
 <h2 id="2-HystrixDashboard设计"><a href="#2-HystrixDashboard设计" class="headerlink" title="2 HystrixDashboard设计"></a>2 HystrixDashboard设计</h2>
@@ -205,7 +550,7 @@
    
 
     <footer class="article-footer">
-      <a data-url="http://xiajunhust.github.io/2016/12/18/从Hystrix-DashboardData看ReativeX的使用/" data-id="ciwubjscc000p2hwf00ilawmk" class="article-share-link">Share</a>
+      <a data-url="http://xiajunhust.github.io/2016/12/18/从Hystrix-DashboardData看ReativeX的使用/" data-id="cixmwxr2x000nr2wfxgr8fzis" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Hystrix/">Hystrix</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/ReactiveX/">ReactiveX</a></li></ul>
@@ -360,7 +705,7 @@
    
 
     <footer class="article-footer">
-      <a data-url="http://xiajunhust.github.io/2016/12/13/InfluxDB写入失败-partial-write-max-values-per-tag-limit-exceeded/" data-id="ciwubjsbs000a2hwfoqhkplop" class="article-share-link">Share</a>
+      <a data-url="http://xiajunhust.github.io/2016/12/13/InfluxDB写入失败-partial-write-max-values-per-tag-limit-exceeded/" data-id="cixmwxr1s0006r2wfql3qbvjx" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/InfluxDB/">InfluxDB</a></li></ul>
@@ -519,7 +864,7 @@
    
 
     <footer class="article-footer">
-      <a data-url="http://xiajunhust.github.io/2016/11/17/RocketMQ源码学习之四-PushConsumer/" data-id="ciwubjsbz000i2hwfcwx14owr" class="article-share-link">Share</a>
+      <a data-url="http://xiajunhust.github.io/2016/11/17/RocketMQ源码学习之四-PushConsumer/" data-id="cixmwxr2q000jr2wf7e2yayxg" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/RocketMQ/">RocketMQ</a></li></ul>
@@ -674,7 +1019,7 @@
    
 
     <footer class="article-footer">
-      <a data-url="http://xiajunhust.github.io/2016/11/14/RocketMQ源码学习之三-异步消息发送/" data-id="ciwubjsbu000d2hwfg0z5hf7q" class="article-share-link">Share</a>
+      <a data-url="http://xiajunhust.github.io/2016/11/14/RocketMQ源码学习之三-异步消息发送/" data-id="cixmwxr2j000dr2wfkhj6d0e3" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/RocketMQ/">RocketMQ</a></li></ul>
@@ -829,7 +1174,7 @@
    
 
     <footer class="article-footer">
-      <a data-url="http://xiajunhust.github.io/2016/11/12/RocketMQ源码学习之二-同步消息发送/" data-id="ciwubjsby000g2hwf6ax2zvr8" class="article-share-link">Share</a>
+      <a data-url="http://xiajunhust.github.io/2016/11/12/RocketMQ源码学习之二-同步消息发送/" data-id="cixmwxr2o000hr2wfs5huus5o" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/RocketMQ/">RocketMQ</a></li></ul>
@@ -984,7 +1329,7 @@
    
 
     <footer class="article-footer">
-      <a data-url="http://xiajunhust.github.io/2016/11/12/RocketMQ源码学习之一-MAC系统单机环境搭建/" data-id="ciwubjsbn00092hwfbni7qztt" class="article-share-link">Share</a>
+      <a data-url="http://xiajunhust.github.io/2016/11/12/RocketMQ源码学习之一-MAC系统单机环境搭建/" data-id="cixmwxr2c0009r2wf9vmzdjrt" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/RocketMQ/">RocketMQ</a></li></ul>
@@ -1138,7 +1483,7 @@
    
 
     <footer class="article-footer">
-      <a data-url="http://xiajunhust.github.io/2016/08/28/MySQL的日期时间类型关于秒以下精度的处理/" data-id="ciwubjsbl00072hwfihn9cegj" class="article-share-link">Share</a>
+      <a data-url="http://xiajunhust.github.io/2016/08/28/MySQL的日期时间类型关于秒以下精度的处理/" data-id="cixmwxr2f000cr2wf0btwfb5t" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/MySQL/">MySQL</a></li></ul>
@@ -1292,323 +1637,10 @@
    
 
     <footer class="article-footer">
-      <a data-url="http://xiajunhust.github.io/2016/08/27/技术分享-MySQL-InnoDB-locks-and-deadlocks/" data-id="ciwubjsch000r2hwfcvkhyzym" class="article-share-link">Share</a>
+      <a data-url="http://xiajunhust.github.io/2016/08/27/技术分享-MySQL-InnoDB-locks-and-deadlocks/" data-id="cixmwxr36000tr2wfs1fez5dn" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/MySQL/">MySQL</a></li></ul>
-
-    </footer>
-  </div>
-  
-
-
-
-</article>
-
-  
-    <article id="post-为什么Java-HashMap、CopyOnWriteArrayList等集合自己实现readObject和writeObject方法" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/2016/08/06/为什么Java-HashMap、CopyOnWriteArrayList等集合自己实现readObject和writeObject方法/" class="article-date">
-  <time datetime="2016-08-06T13:48:23.000Z" itemprop="datePublished">2016-08-06</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2016/08/06/为什么Java-HashMap、CopyOnWriteArrayList等集合自己实现readObject和writeObject方法/">为什么Java HashMap、CopyOnWriteArrayList等集合自己实现readObject和writeObject方法</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>PS:本文源码参考的是JDK 1.8.</p>
-<h1 id="1-readObject、writeObject方法是什么？作用是什么？"><a href="#1-readObject、writeObject方法是什么？作用是什么？" class="headerlink" title="1 readObject、writeObject方法是什么？作用是什么？"></a>1 readObject、writeObject方法是什么？作用是什么？</h1><p>当一个class实现了Serializable接口，那么意味着这个类可以被序列化。如果类不实现readObject、writeObject方法，那么会执行默认的序列化和反序列化逻辑，否则执行自定义的序列化和反序列化逻辑，即readObject、writeObject方法的逻辑。</p>
-        
-          <p class="article-more-link">
-            <a href="/2016/08/06/为什么Java-HashMap、CopyOnWriteArrayList等集合自己实现readObject和writeObject方法/#more">Read More</a>
-          </p>
-        
-      
-    </div>
-
-
-	<!-- css -->
-	<style type="text/css">
-	    .center {
-	        text-align: center;
-	    }
-	    .hidden {
-	        display: none;
-	    }
-		.donate_bar a.btn_donate{
-			display: inline-block;
-			width: 82px;
-			height: 82px;
-			background: url("http://7xsl28.com1.z0.glb.clouddn.com/btn_reward.gif") no-repeat;
-			_background: url("http://7xsl28.com1.z0.glb.clouddn.com/btn_reward.gif") no-repeat;
-
-			<!-- http://img.t.sinajs.cn/t5/style/images/apps_PRF/e_media/btn_reward.gif
-			     因为本 hexo 生成的博客所用的 theme 的 a:hover 带动画效果，
-				 为了在让打赏按钮显示效果正常 而 添加了以下几行 css，
-				 嵌入其它博客时不一定要它们。 -->
-			-webkit-transition: background 0s;
-			-moz-transition: background 0s;
-			-o-transition: background 0s;
-			-ms-transition: background 0s;
-			transition: background 0s;
-			<!-- /让打赏按钮的效果显示正常 而 添加的几行 css 到此结束 -->
-		}
-
-		.donate_bar a.btn_donate:hover{ background-position: 0px -82px;}
-		.donate_bar .donate_txt {
-			display: block;
-			color: #9d9d9d;
-			font: 14px/2 "Microsoft Yahei";
-		}
-		.bold{ font-weight: bold; }
-	</style>
-	<!-- /css -->
-
-    <!-- Donate Module -->
-    <div id="donate_module">
-
-	<!-- btn_donate & tips -->
-	<div id="donate_board" class="donate_bar center">
-	    <br>
-	    ------------------------------------------------------------------------------------------------------------------------------
-	    <br>
-		<a id="btn_donate" class="btn_donate" target="_self" href="javascript:;" title="Donate 打赏"></a>
-		<span class="donate_txt">
-			打赏我的人，运气都不会太差~
-		</span>
-			
-		
-	</div>
-	<!-- /btn_donate & tips -->
-
-	<!-- donate guide -->
-    
-	<div id="donate_guide" class="donate_bar center hidden">
-        <br>
-	    ------------------------------------------------------------------------------------------------------------------------------
-	    <br>
-	    
-	    <div width="100%" align="center"><div name="dashmain" id="dash-main-id-87895f" class="dash-main-3 87895f-0.99"></div></div>
-		<script type="text/javascript" charset="utf-8" src="http://www.dashangcloud.com/static/ds.js"></script>
-		
-
-		<a href="http://o8sltkx20.bkt.clouddn.com/0004.jpg" title="用微信扫一扫哦~" class="fancybox" rel="article0">
-			<img src="http://o8sltkx20.bkt.clouddn.com/0004.jpg" title="微信打赏 Donate" height="190px" width="auto"/>
-		</a>
-        
-        &nbsp;&nbsp;
-
-		<a href="http://o8sltkx20.bkt.clouddn.com/0002.jpg" title="用支付宝扫一扫即可~" class="fancybox" rel="article0">
-			<img src="http://o8sltkx20.bkt.clouddn.com/0002.jpg" title="支付宝打赏 Donate" height="190px" width="auto"/>
-		</a>
-
-		<span class="donate_txt">
-			打赏我的人，运气都不会太差~
-		</span>
-
-	</div>
-	<!-- /donate guide -->
-
-	<!-- donate script -->
-	<script type="text/javascript">
-		document.getElementById('btn_donate').onclick = function() {
-			$('#donate_board').addClass('hidden');
-	    $('#donate_guide').removeClass('hidden');
-		}
-
-		function donate_on_web(){
-			$('#donate').submit();
-        }
-
-		var original_window_onload = window.onload;
-        window.onload = function () {
-            if (original_window_onload) {
-                original_window_onload();
-            }
-            document.getElementById('donate_board_wdg').className = 'hidden';
-		}
-	</script>
-	<!-- /donate script -->
-</div>
-<!-- /Donate Module -->
-   
-
-    <footer class="article-footer">
-      <a data-url="http://xiajunhust.github.io/2016/08/06/为什么Java-HashMap、CopyOnWriteArrayList等集合自己实现readObject和writeObject方法/" data-id="ciwubjsbw000e2hwf95t0j40v" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Java/">Java</a></li></ul>
-
-    </footer>
-  </div>
-  
-
-
-
-</article>
-
-  
-    <article id="post-CopyOnWriteArrayList与JMM" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/2016/08/06/CopyOnWriteArrayList与JMM/" class="article-date">
-  <time datetime="2016-08-06T08:37:02.000Z" itemprop="datePublished">2016-08-06</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2016/08/06/CopyOnWriteArrayList与JMM/">CopyOnWriteArrayList与JMM</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>说明：本文代码均以JDK1.8的源码为准。</p>
-<h1 id="1-什么是CopyOnWriteArrayList"><a href="#1-什么是CopyOnWriteArrayList" class="headerlink" title="1 什么是CopyOnWriteArrayList"></a>1 什么是CopyOnWriteArrayList</h1><p>关于CopyOnWriteArrayList是什么以及基本用法，在这里不多说，网上可以搜到大量这方面的文章。在这里只做简要说明：CopyOnWriteArrayList相当于线程安全的ArrayList，是一个可变数组。它具有如下特性： </p>
-<ul>
-<li>是线程安全的</li>
-<li>写操作会复制整个基础数组，因此写操作开销很大</li>
-<li>适用于如下情况：数组大小较小，并且读操作比写操作多很多的情形</li>
-</ul>
-        
-          <p class="article-more-link">
-            <a href="/2016/08/06/CopyOnWriteArrayList与JMM/#more">Read More</a>
-          </p>
-        
-      
-    </div>
-
-
-	<!-- css -->
-	<style type="text/css">
-	    .center {
-	        text-align: center;
-	    }
-	    .hidden {
-	        display: none;
-	    }
-		.donate_bar a.btn_donate{
-			display: inline-block;
-			width: 82px;
-			height: 82px;
-			background: url("http://7xsl28.com1.z0.glb.clouddn.com/btn_reward.gif") no-repeat;
-			_background: url("http://7xsl28.com1.z0.glb.clouddn.com/btn_reward.gif") no-repeat;
-
-			<!-- http://img.t.sinajs.cn/t5/style/images/apps_PRF/e_media/btn_reward.gif
-			     因为本 hexo 生成的博客所用的 theme 的 a:hover 带动画效果，
-				 为了在让打赏按钮显示效果正常 而 添加了以下几行 css，
-				 嵌入其它博客时不一定要它们。 -->
-			-webkit-transition: background 0s;
-			-moz-transition: background 0s;
-			-o-transition: background 0s;
-			-ms-transition: background 0s;
-			transition: background 0s;
-			<!-- /让打赏按钮的效果显示正常 而 添加的几行 css 到此结束 -->
-		}
-
-		.donate_bar a.btn_donate:hover{ background-position: 0px -82px;}
-		.donate_bar .donate_txt {
-			display: block;
-			color: #9d9d9d;
-			font: 14px/2 "Microsoft Yahei";
-		}
-		.bold{ font-weight: bold; }
-	</style>
-	<!-- /css -->
-
-    <!-- Donate Module -->
-    <div id="donate_module">
-
-	<!-- btn_donate & tips -->
-	<div id="donate_board" class="donate_bar center">
-	    <br>
-	    ------------------------------------------------------------------------------------------------------------------------------
-	    <br>
-		<a id="btn_donate" class="btn_donate" target="_self" href="javascript:;" title="Donate 打赏"></a>
-		<span class="donate_txt">
-			打赏我的人，运气都不会太差~
-		</span>
-			
-		
-	</div>
-	<!-- /btn_donate & tips -->
-
-	<!-- donate guide -->
-    
-	<div id="donate_guide" class="donate_bar center hidden">
-        <br>
-	    ------------------------------------------------------------------------------------------------------------------------------
-	    <br>
-	    
-	    <div width="100%" align="center"><div name="dashmain" id="dash-main-id-87895f" class="dash-main-3 87895f-0.99"></div></div>
-		<script type="text/javascript" charset="utf-8" src="http://www.dashangcloud.com/static/ds.js"></script>
-		
-
-		<a href="http://o8sltkx20.bkt.clouddn.com/0004.jpg" title="用微信扫一扫哦~" class="fancybox" rel="article0">
-			<img src="http://o8sltkx20.bkt.clouddn.com/0004.jpg" title="微信打赏 Donate" height="190px" width="auto"/>
-		</a>
-        
-        &nbsp;&nbsp;
-
-		<a href="http://o8sltkx20.bkt.clouddn.com/0002.jpg" title="用支付宝扫一扫即可~" class="fancybox" rel="article0">
-			<img src="http://o8sltkx20.bkt.clouddn.com/0002.jpg" title="支付宝打赏 Donate" height="190px" width="auto"/>
-		</a>
-
-		<span class="donate_txt">
-			打赏我的人，运气都不会太差~
-		</span>
-
-	</div>
-	<!-- /donate guide -->
-
-	<!-- donate script -->
-	<script type="text/javascript">
-		document.getElementById('btn_donate').onclick = function() {
-			$('#donate_board').addClass('hidden');
-	    $('#donate_guide').removeClass('hidden');
-		}
-
-		function donate_on_web(){
-			$('#donate').submit();
-        }
-
-		var original_window_onload = window.onload;
-        window.onload = function () {
-            if (original_window_onload) {
-                original_window_onload();
-            }
-            document.getElementById('donate_board_wdg').className = 'hidden';
-		}
-	</script>
-	<!-- /donate script -->
-</div>
-<!-- /Donate Module -->
-   
-
-    <footer class="article-footer">
-      <a data-url="http://xiajunhust.github.io/2016/08/06/CopyOnWriteArrayList与JMM/" data-id="ciwubjsas00022hwfu99jgghz" class="article-share-link">Share</a>
-      
-      
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Java/">Java</a></li></ul>
 
     </footer>
   </div>
@@ -1645,7 +1677,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">标签云</h3>
     <div class="widget tagcloud">
-      <a href="/tags/Hystrix/" style="font-size: 10px;">Hystrix</a> <a href="/tags/InfluxDB/" style="font-size: 10px;">InfluxDB</a> <a href="/tags/Java/" style="font-size: 15px;">Java</a> <a href="/tags/MySQL/" style="font-size: 15px;">MySQL</a> <a href="/tags/ReactiveX/" style="font-size: 10px;">ReactiveX</a> <a href="/tags/RocketMQ/" style="font-size: 20px;">RocketMQ</a> <a href="/tags/代码设计/" style="font-size: 10px;">代码设计</a> <a href="/tags/开发工具/" style="font-size: 15px;">开发工具</a> <a href="/tags/思考-读书笔记/" style="font-size: 10px;">思考&读书笔记</a> <a href="/tags/测试技术/" style="font-size: 10px;">测试技术</a>
+      <a href="/tags/Hystrix/" style="font-size: 10px;">Hystrix</a> <a href="/tags/InfluxDB/" style="font-size: 10px;">InfluxDB</a> <a href="/tags/Java/" style="font-size: 13.33px;">Java</a> <a href="/tags/MySQL/" style="font-size: 16.67px;">MySQL</a> <a href="/tags/ReactiveX/" style="font-size: 10px;">ReactiveX</a> <a href="/tags/RocketMQ/" style="font-size: 20px;">RocketMQ</a> <a href="/tags/代码设计/" style="font-size: 10px;">代码设计</a> <a href="/tags/开发工具/" style="font-size: 13.33px;">开发工具</a> <a href="/tags/思考-读书笔记/" style="font-size: 10px;">思考&读书笔记</a> <a href="/tags/测试技术/" style="font-size: 10px;">测试技术</a>
     </div>
   </div>
 
@@ -1654,7 +1686,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">归档</h3>
     <div class="widget">
-      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">十二月 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/11/">十一月 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">八月 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a></li></ul>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/01/">一月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">十二月 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/11/">十一月 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/08/">八月 2016</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a></li></ul>
     </div>
   </div>
 
@@ -1667,6 +1699,14 @@
       <ul>
         
           <li>
+            <a href="/2017/01/07/一次大表SQL查询优化历程/">一次大表SQL查询优化历程</a>
+          </li>
+        
+          <li>
+            <a href="/2016/12/28/Hystrix-Dashborad数据介绍/">Hystrix Dashborad数据介绍</a>
+          </li>
+        
+          <li>
             <a href="/2016/12/18/从Hystrix-DashboardData看ReativeX的使用/">从Hystrix DashboardData看ReativeX的使用</a>
           </li>
         
@@ -1676,14 +1716,6 @@
         
           <li>
             <a href="/2016/11/17/RocketMQ源码学习之四-PushConsumer/">RocketMQ源码学习之四-PushConsumer</a>
-          </li>
-        
-          <li>
-            <a href="/2016/11/14/RocketMQ源码学习之三-异步消息发送/">RocketMQ源码学习之三-异步消息发送</a>
-          </li>
-        
-          <li>
-            <a href="/2016/11/12/RocketMQ源码学习之二-同步消息发送/">RocketMQ源码学习之二-同步消息发送</a>
           </li>
         
       </ul>
@@ -1701,7 +1733,7 @@
   <div class="outer">
    
     <div id="footer-info" class="inner">
-      &copy; 2016 江南烟雨<br>
+      &copy; 2017 江南烟雨<br>
      本站总访问量<span id="busuanzi_value_site_pv"></span>次</br>
      本站访客数<span id="busuanzi_value_site_uv"></span>人次</br>
 

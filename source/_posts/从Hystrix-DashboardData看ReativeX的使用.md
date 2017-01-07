@@ -6,6 +6,17 @@ tags: [ReactiveX,Hystrix]
 
 最近在将系统中服务降级框架[Hystrix](https://github.com/Netflix/Hystrix)的运行时的一些指标数据接入到监控平台，需要获取Hystrix的Dashboard数据。发现用到了[ReactiveX](http://reactivex.io/)的知识，因此总结下。
 
+注：本文基于的Hystrix的版本是：
+
+```
+<hystrix.version>1.5.7</hystrix.version>
+<dependency>
+    <groupId>com.netflix.hystrix</groupId>
+    <artifactId>hystrix-core</artifactId>
+    <version>${hystrix.version}</version>
+</dependency>
+```
+
 ## 1 如何获取Hystrix的Dashboard数据  
 获取Hystrix的Dashboard数据比较简单，实现一个观察者即可接收Dashboard数据，如下代码：
 
@@ -144,13 +155,13 @@ private HystrixDashboardStream(int delayInMs) {
 
 这里创建一个按固定时间间隔发射整数序列的Observable，默认间隔时间是500ms。
 
-![operators.interval](https://mcxiaoke.gitbooks.io/rxdocs/content/images/operators/interval.png)
+![operators.interval](http://o8sltkx20.bkt.clouddn.com/rx-001-001.png)
 
-RxJava中[Observable.interval](http://reactivex.io/RxJava/javadoc/rx/Observable.html#interval(long,%20java.util.concurrent.TimeUnit)).
+RxJava中[Observable.interval](http://o8sltkx20.bkt.clouddn.com/rx-001-002.png).
 
 创建了Observable之后，紧接着调用了变换函数Map。  
 
-![operators.map](https://mcxiaoke.gitbooks.io/rxdocs/content/images/operators/map.png)
+![operators.map](http://o8sltkx20.bkt.clouddn.com/rx-001-002.png)
 
 它对Observable发射的每一项数据应用一个函数，执行变换操作。这里的函数是调用HystrixCommandMetrics、HystrixThreadPoolMetrics、HystrixCollapserMetrics的实例获取方法，返回对应的Dashboard数据。
 
